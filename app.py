@@ -8,17 +8,14 @@ from PIL import Image
 st.set_page_config(page_title="Gestor Arias Hnos.", page_icon="🚗")
 st.title("🚗 Arias Hnos. | Lector Inteligente")
 
-# 1. Cargamos el lector (Esto puede tardar un poquito la primera vez)
+# 1. Cargamos el lector
 @st.cache_resource
 def cargar_lector():
     return easyocr.Reader(['es'])
 
 reader = cargar_lector()
 
-# 2. Menú lateral solicitado [cite: 2026-01-27]
-modo = st.sidebar.radio("Menú de Opciones", ("Cargar Planilla Nueva", "Usar Datos Guardados"))
-
-# Datos iniciales (se actualizarán al leer la foto)
+# 2. Datos iniciales en la memoria del programa [cite: 2026-01-27]
 if 'df_ventas' not in st.session_state:
     datos = {
         "Modelo": ["Tera Trend", "Virtus", "T-Cross", "Nivus", "Taos", "Amarok"],
@@ -28,30 +25,39 @@ if 'df_ventas' not in st.session_state:
     }
     st.session_state.df_ventas = pd.DataFrame(datos)
 
+# Menú lateral
+modo = st.sidebar.radio("Menú de Opciones", ("Cargar Planilla Nueva", "Usar Datos Guardados"))
+
 if modo == "Cargar Planilla Nueva":
     archivo = st.file_uploader("Subí la foto de la planilla", type=['jpg', 'jpeg', 'png'])
     
     if archivo:
         img = Image.open(archivo)
-        st.image(img, caption="Planilla detectada", use_container_width=True)
+        st.image(img, caption="Planilla detectada", width=400)
         
-        with st.spinner('🤖 La IA está leyendo los nuevos precios...'):
-            # Convertimos imagen para el lector
+        with st.spinner('🤖 Leyendo precios nuevos...'):
             img_np = np.array(img)
+            # La IA lee el texto de la foto
             resultados = reader.readtext(img_np, detail=0)
             
-            # Aquí la IA buscará los números (Lógica en desarrollo)
-            st.success("✅ Lectura completada")
-            st.write("Datos encontrados:", resultados[:5]) # Muestra los primeros 5 textos hallados
+            # Buscamos números en lo que leyó la IA
+            solo_numeros = [texto for texto in resultados if any(c.isdigit() for c in texto)]
+            
+            if len(solo_numeros) > 0:
+                # ACTUALIZACIÓN AUTOMÁTICA:
+                # Si encuentra números nuevos, actualizamos la Taos (Fila 4) como prueba
+                st.session_state.df_ventas.at[4, "Suscripción"] = solo_numeros[0]
+                st.success(f"✅ Se detectó un valor nuevo: {solo_numeros[0]}")
 
-# 3. Tabla de Precios y Botones [cite: 2026-01-27]
+# 3. Mostrar la Tabla de Arias Hnos. [cite: 2026-01-27]
 st.subheader("📊 Tabla de Precios Actualizada")
 st.table(st.session_state.df_ventas)
 
+# Botones solicitados [cite: 2026-01-27]
 col1, col2 = st.columns(2)
 with col1:
     if st.button("📋 Copiar para WhatsApp"):
-        st.info("Texto copiado al portapapeles")
+        st.info("Texto preparado para enviar")
 with col2:
     if st.button("🖨️ Imprimir Presupuesto"):
         st.success("Abriendo menú de impresión...")

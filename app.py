@@ -8,13 +8,14 @@ st.title("🚗 Arias Hnos. | Gestor de Ventas")
 # Menú lateral para Alejandro [cite: 2026-01-27, 2026-01-28]
 modo = st.sidebar.radio("Menú de Opciones", ("Cargar Planilla Nueva", "Usar Datos Guardados"))
 
-# Datos de los vehículos (Virtus, Amarok, etc.) [cite: 2026-01-27]
+# Datos actualizados con la Taos [cite: 2026-01-27]
 datos = {
-    "Modelo": ["Tera Trend", "Virtus", "T-Cross", "Nivus", "Amarok"],
-    "Suscripción": ["$500.000", "$850.000", "$700.000", "$700.000", "$800.000"],
-    "Cuota 1": ["$450.000", "$730.000", "$650.000", "$570.000", "$650.000"],
-    "Cuota Pura": ["$297.315", "$527.472", "$431.792", "$373.979", "$407.952"]
+    "Modelo": ["Tera Trend", "Virtus", "T-Cross", "Nivus", "Taos", "Amarok"],
+    "Suscripción": ["$500.000", "$850.000", "$700.000", "$700.000", "$950.000", "$800.000"],
+    "Cuota 1": ["$450.000", "$730.000", "$650.000", "$570.000", "$820.000", "$650.000"],
+    "Cuota Pura": ["$297.315", "$527.472", "$431.792", "$373.979", "$610.500", "$407.952"]
 }
+    
 
 if modo == "Cargar Planilla Nueva":
     archivo = st.file_uploader("Subí la foto de la planilla", type=['jpg', 'jpeg', 'png'])
@@ -35,3 +36,4 @@ with col1:
 with col2:
     if st.button("🖨️ Imprimir Presupuesto"):
         st.success("Abriendo ventana de impresión...")
+

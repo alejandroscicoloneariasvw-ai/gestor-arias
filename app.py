@@ -30,26 +30,29 @@ if modo == "Cargar Planilla Nueva":
     
     if archivo:
         img = Image.open(archivo)
-        st.image(img, caption="Analizando planilla de Arias Hnos...", width=400)
+        st.image(img, caption="Analizando planilla...", width=400)
         
-        with st.spinner('🤖 Buscando precios...'):
+        with st.spinner('🤖 Extrayendo precios reales...'):
             img_np = np.array(img)
             resultados = reader.readtext(img_np, detail=0)
             
-            # 🎯 Lógica mejorada: Buscamos números que tengan puntos (ej: 800.000) 
-            # y que NO tengan barras de fecha (/)
-            precios_reales = []
-            for texto in resultados:
-                limpio = texto.replace("$", "").strip()
-                if "." in limpio and "/" not in limpio:
-                    precios_reales.append(f"${limpio}")
+            # 🎯 FILTRO DE SEGURIDAD: Solo números con puntos y sin letras
+            precios_detectados = []
+            for t in resultados:
+                # Quitamos el signo $ y espacios
+                limpio = t.replace("$", "").replace(" ", "").strip()
+                # Si tiene puntos y al menos un número, y NO tiene letras, es un precio
+                if "." in limpio and any(c.isdigit() for c in limpio) and not any(c.isalpha() for c in limpio):
+                    precios_detectados.append(f"${limpio}")
 
-            if len(precios_reales) >= 3:
-                # Si es la planilla de la Taos:
-                st.session_state.df_ventas.at[4, "Suscripción"] = precios_reales[0]
-                st.session_state.df_ventas.at[4, "Cuota 1"] = precios_reales[1]
-                st.session_state.df_ventas.at[4, "Cuota Pura"] = precios_reales[2]
-                st.success(f"✅ Taos actualizada: Susc. {precios_reales[0]} | Cuota 1 {precios_reales[1]}")
+            if len(precios_detectados) >= 3:
+                # Actualizamos la Taos con los primeros 3 precios limpios encontrados en la foto
+                st.session_state.df_ventas.at[4, "Suscripción"] = precios_detectados[0]
+                st.session_state.df_ventas.at[4, "Cuota 1"] = precios_detectados[1]
+                st.session_state.df_ventas.at[4, "Cuota Pura"] = precios_detectados[2]
+                st.success(f"✅ Precios de Taos actualizados: {precios_detectados[0]}, {precios_detectados[1]}, {precios_detectados[2]}")
+            else:
+                st.warning("⚠️ No pude distinguir los precios claramente. Intentá con una foto más de cerca.")
 
 st.subheader("📊 Tabla de Precios Actualizada")
 st.table(st.session_state.df_ventas)

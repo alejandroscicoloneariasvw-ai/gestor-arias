@@ -3,19 +3,17 @@ import pandas as pd
 import easyocr
 import numpy as np
 from PIL import Image
+import re
 
-# Configuración de la App
 st.set_page_config(page_title="Gestor Arias Hnos.", page_icon="🚗")
 st.title("🚗 Arias Hnos. | Lector Inteligente")
 
-# 1. Cargamos el lector
 @st.cache_resource
 def cargar_lector():
     return easyocr.Reader(['es'])
 
 reader = cargar_lector()
 
-# 2. Datos iniciales en la memoria del programa [cite: 2026-01-27]
 if 'df_ventas' not in st.session_state:
     datos = {
         "Modelo": ["Tera Trend", "Virtus", "T-Cross", "Nivus", "Taos", "Amarok"],
@@ -25,39 +23,39 @@ if 'df_ventas' not in st.session_state:
     }
     st.session_state.df_ventas = pd.DataFrame(datos)
 
-# Menú lateral
 modo = st.sidebar.radio("Menú de Opciones", ("Cargar Planilla Nueva", "Usar Datos Guardados"))
 
 if modo == "Cargar Planilla Nueva":
-    archivo = st.file_uploader("Subí la foto de la planilla", type=['jpg', 'jpeg', 'png'])
+    archivo = st.file_uploader("Subí la planilla", type=['jpg', 'jpeg', 'png'])
     
     if archivo:
         img = Image.open(archivo)
-        st.image(img, caption="Planilla detectada", width=400)
+        st.image(img, caption="Analizando planilla de Arias Hnos...", width=400)
         
-        with st.spinner('🤖 Leyendo precios nuevos...'):
+        with st.spinner('🤖 Buscando precios...'):
             img_np = np.array(img)
-            # La IA lee el texto de la foto
             resultados = reader.readtext(img_np, detail=0)
             
-            # Buscamos números en lo que leyó la IA
-            solo_numeros = [texto for texto in resultados if any(c.isdigit() for c in texto)]
-            
-            if len(solo_numeros) > 0:
-                # ACTUALIZACIÓN AUTOMÁTICA:
-                # Si encuentra números nuevos, actualizamos la Taos (Fila 4) como prueba
-                st.session_state.df_ventas.at[4, "Suscripción"] = solo_numeros[0]
-                st.success(f"✅ Se detectó un valor nuevo: {solo_numeros[0]}")
+            # 🎯 Lógica mejorada: Buscamos números que tengan puntos (ej: 800.000) 
+            # y que NO tengan barras de fecha (/)
+            precios_reales = []
+            for texto in resultados:
+                limpio = texto.replace("$", "").strip()
+                if "." in limpio and "/" not in limpio:
+                    precios_reales.append(f"${limpio}")
 
-# 3. Mostrar la Tabla de Arias Hnos. [cite: 2026-01-27]
+            if len(precios_reales) >= 3:
+                # Si es la planilla de la Taos:
+                st.session_state.df_ventas.at[4, "Suscripción"] = precios_reales[0]
+                st.session_state.df_ventas.at[4, "Cuota 1"] = precios_reales[1]
+                st.session_state.df_ventas.at[4, "Cuota Pura"] = precios_reales[2]
+                st.success(f"✅ Taos actualizada: Susc. {precios_reales[0]} | Cuota 1 {precios_reales[1]}")
+
 st.subheader("📊 Tabla de Precios Actualizada")
 st.table(st.session_state.df_ventas)
 
-# Botones solicitados [cite: 2026-01-27]
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("📋 Copiar para WhatsApp"):
-        st.info("Texto preparado para enviar")
+    st.button("📋 Copiar para WhatsApp")
 with col2:
-    if st.button("🖨️ Imprimir Presupuesto"):
-        st.success("Abriendo menú de impresión...")
+    st.button("🖨️ Imprimir Presupuesto")

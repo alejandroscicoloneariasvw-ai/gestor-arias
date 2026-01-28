@@ -1,5 +1,6 @@
 ﻿import streamlit as st
 import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 from PIL import Image
 import re
 
@@ -71,4 +72,5 @@ Los cupos con este beneficio son limitados. Si quieres avanzar mándame por este
         if st.button("🖨️ IMPRIMIR"):
             st.info("Preparando impresión...")
 else:
+
     st.info("Hola Alejandro, por favor cargá una planilla para empezar.")

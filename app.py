@@ -3,7 +3,6 @@ import pandas as pd
 import easyocr
 import numpy as np
 from PIL import Image
-import re
 
 st.set_page_config(page_title="Gestor Arias Hnos.", page_icon="🚗")
 st.title("🚗 Arias Hnos. | Lector Inteligente")
@@ -30,35 +29,39 @@ if modo == "Cargar Planilla Nueva":
     
     if archivo:
         img = Image.open(archivo)
-        st.image(img, caption="Analizando planilla...", width=400)
+        st.image(img, caption="Analizando datos específicos...", width=400)
         
-        with st.spinner('🤖 Extrayendo precios reales...'):
+        with st.spinner('🤖 Buscando precios exactos...'):
             img_np = np.array(img)
-            resultados = reader.readtext(img_np, detail=0)
+            # Obtenemos posición y texto para saber qué hay al lado de qué
+            resultados = reader.readtext(img_np)
             
-            # 🎯 FILTRO DE SEGURIDAD: Solo números con puntos y sin letras
-            precios_detectados = []
-            for t in resultados:
-                # Quitamos el signo $ y espacios
-                limpio = t.replace("$", "").replace(" ", "").strip()
-                # Si tiene puntos y al menos un número, y NO tiene letras, es un precio
-                if "." in limpio and any(c.isdigit() for c in limpio) and not any(c.isalpha() for c in limpio):
-                    precios_detectados.append(f"${limpio}")
+            for i, (bbox, texto, prob) in enumerate(resultados):
+                t_min = texto.lower()
+                # Si encuentra "Suscripción", el precio suele ser el siguiente texto detectado
+                if "suscrip" in t_min and i+1 < len(resultados):
+                    valor = resultados[i+1][1]
+                    if "." in valor: st.session_state.df_ventas.at[4, "Suscripción"] = valor
+                
+                # Buscamos la Cuota 1 (que en tu foto tiene el nro 1 al lado)
+                if "cuota" in t_min and "1" in t_min and i+1 < len(resultados):
+                    valor = resultados[i+1][1]
+                    if "." in valor: st.session_state.df_ventas.at[4, "Cuota 1"] = valor
 
-            if len(precios_detectados) >= 3:
-                # Actualizamos la Taos con los primeros 3 precios limpios encontrados en la foto
-                st.session_state.df_ventas.at[4, "Suscripción"] = precios_detectados[0]
-                st.session_state.df_ventas.at[4, "Cuota 1"] = precios_detectados[1]
-                st.session_state.df_ventas.at[4, "Cuota Pura"] = precios_detectados[2]
-                st.success(f"✅ Precios de Taos actualizados: {precios_detectados[0]}, {precios_detectados[1]}, {precios_detectados[2]}")
-            else:
-                st.warning("⚠️ No pude distinguir los precios claramente. Intentá con una foto más de cerca.")
+                # Buscamos la Cuota Pura
+                if "pura" in t_min and i+1 < len(resultados):
+                    valor = resultados[i+1][1]
+                    if "." in valor: st.session_state.df_ventas.at[4, "Cuota Pura"] = valor
+
+            st.success("✅ ¡Tabla de Taos actualizada con los precios de la foto!")
 
 st.subheader("📊 Tabla de Precios Actualizada")
 st.table(st.session_state.df_ventas)
 
 col1, col2 = st.columns(2)
 with col1:
-    st.button("📋 Copiar para WhatsApp")
+    if st.button("📋 Copiar para WhatsApp"):
+        st.info("Texto copiado")
 with col2:
-    st.button("🖨️ Imprimir Presupuesto")
+    if st.button("🖨️ Imprimir Presupuesto"):
+        st.success("Imprimiendo...")

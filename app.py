@@ -29,25 +29,46 @@ if modo == "Carga Manual":
 else:
     archivo = st.sidebar.file_uploader("Subí tu .txt", type=['txt'])
     if archivo:
-        lineas = archivo.getvalue().decode("utf-8").split("\n")
+        try:
+            # Intentamos leer el archivo con diferentes formatos para evitar el error de la captura
+            contenido = archivo.getvalue().decode("utf-8")
+        except UnicodeDecodeError:
+            contenido = archivo.getvalue().decode("latin-1")
+        
+        lineas = contenido.split("\n")
         temp = []
         for l in lineas:
             p = l.split(",")
             if len(p) >= 8:
-                temp.append({"Modelo": p[0], "VM": int(p[1]), "Susc": int(p[2]), "C1": int(p[3]), "Adh": int(p[4]), "C2_13": int(p[5]), "CFin": int(p[6]), "CPura": int(p[7])})
-        st.session_state.lista_precios = temp
+                try:
+                    temp.append({
+                        "Modelo": p[0].strip(), 
+                        "VM": int(float(p[1])), 
+                        "Susc": int(float(p[2])), 
+                        "C1": int(float(p[3])), 
+                        "Adh": int(float(p[4])), 
+                        "C2_13": int(float(p[5])), 
+                        "CFin": int(float(p[6])), 
+                        "CPura": int(float(p[7]))
+                    })
+                except ValueError:
+                    continue
+        if temp:
+            st.session_state.lista_precios = temp
+            st.sidebar.success("✅ ¡Archivo cargado con éxito!")
 
 # --- 2. SELECTOR Y CONSULTA ---
 if st.session_state.lista_precios:
     st.divider()
-    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
+    modelos_disponibles = [a['Modelo'] for a in st.session_state.lista_precios]
+    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo para el cliente:", modelos_disponibles)
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == modelo_sel)
 
     # CÁLCULOS
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # --- 3. FORMATO LLAMATIVO (CON EMOJIS Y SEPARADORES) ---
+    # --- 3. FORMATO WHATSAPP ---
     msj = (f"━━━━━━━━━━━━━━━━━━━\n"
            f"🏛️  *ARIAS HNOS. - Presupuesto Oficial*\n"
            f"📅  *Vigencia:* 05/12/2025\n"
@@ -74,8 +95,10 @@ if st.session_state.lista_precios:
            f"⚠️  _Los cupos con este beneficio son limitados por stock de planilla._\n\n"
            f"Si quieres avanzar, mándame foto de tu **DNI (frente y dorso)** y te explico cómo asegurar este beneficio. 📲").replace(",", ".")
 
-    st.subheader("📱 Vista Previa del Presupuesto Llamativo")
+    st.subheader("📱 Vista Previa del Presupuesto")
     st.info(msj)
     
     link_wa = f"https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')}"
-    st.markdown(f"### [🚀 ENVIAR POR WHATSAPP CON ESTE FORMATO]({link_wa})")
+    st.markdown(f"### [🚀 ENVIAR POR WHATSAPP]({link_wa})")
+else:
+    st.info("👋 Alejandro, primero cargá los datos desde el panel lateral.")

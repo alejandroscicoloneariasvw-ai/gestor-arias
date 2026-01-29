@@ -5,25 +5,22 @@ import pandas as pd
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 st.title("🚗 Arias Hnos. | Presupuestos")
 
-# --- TRUCO VISUAL: Achicamos el cuadro de copiado al máximo ---
+# --- EL TRUCO: Forzamos al cuadro a ser una "línea" de copiado ---
 st.markdown("""
     <style>
-    /* Achicamos el bloque de código para que casi no ocupe espacio */
+    /* Achicamos el bloque de código al mínimo */
     .stCodeBlock {
-        margin-top: -10px !important;
-        margin-bottom: 0px !important;
+        height: 55px !important;
+        overflow: hidden !important;
     }
     .stCodeBlock div {
-        height: 45px !important; /* Altura mínima para que solo se vea el botón de copiar */
+        height: 55px !important;
     }
-    /* Estilo para el cartel de instrucción */
+    /* Estilo para el botón de ayuda visual */
     .instruccion {
-        background-color: #f0f2f6;
-        padding: 10px;
-        border-radius: 5px;
-        border-left: 5px solid #ff4b4b;
-        margin-bottom: 5px;
+        color: #007bff;
         font-weight: bold;
+        margin-bottom: -15px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -67,7 +64,7 @@ with st.sidebar:
                     except: continue
             st.session_state.lista_precios = temp
 
-# --- 2. SELECTOR Y PROCESO ---
+# --- 2. SELECTOR Y MENSAJE ---
 if st.session_state.lista_precios:
     mod_sel = st.selectbox("🚗 Seleccioná el vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
@@ -81,7 +78,7 @@ if st.session_state.lista_precios:
            f"🚘 *Vehículo:* {d['Modelo']}\n\n*Valor del Auto:* ${fmt(d['VM'])}\n\n*Tipo de Plan:* {tp}\n\n"
            f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\n\n{adj}"
            f"*Detalle de Inversión Inicial:*\n* *Suscripción a Financiación:* ${fmt(d['Susc'])}\n* *Cuota Nº 1:* ${fmt(d['C1'])}\n"
-           f"* *Costo Normal de Ingreso:* ${fmt(d['Susc']+d['C1'])}. (Ver Beneficio Exclusivo 👇)\n\n"
+           f"* *Costo Normal de Ingreso:* ${fmt(d['Susc']+d['C1'])}. (Ver Beneficio 👇)\n\n"
            f"-----------------------------------------------------------\n"
            f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${fmt(d['Adh'])}*, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n\n"
            f"💰 *AHORRO DIRECTO HOY: ${fmt(ah)}*\n"
@@ -92,13 +89,11 @@ if st.session_state.lista_precios:
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
     # --- DISEÑO FINAL ---
-    st.markdown('<div class="instruccion">👉 TOCÁ LAS HOJITAS PARA COPIAR:</div>', unsafe_allow_html=True)
-    
-    # Este es el cuadro que sí copia, pero lo "apretamos" para que solo se vea el botón de las hojitas
+    st.markdown('<p class="instruccion">📋 HACÉ CLIC EN LAS HOJITAS PARA COPIAR:</p>', unsafe_allow_html=True)
     st.code(msj, language=None)
     
     st.divider()
-    with st.expander("Revisar texto completo"):
+    with st.expander("🔍 Revisar presupuesto antes de enviar"):
         st.text(msj)
 else:
     st.info("Cargá datos a la izquierda.")

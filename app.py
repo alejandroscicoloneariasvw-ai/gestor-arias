@@ -5,70 +5,76 @@ import numpy as np
 from PIL import Image
 import re
 
-st.set_page_config(page_title="Gestor Arias Hnos.", page_icon="🚗")
-st.title("🚗 Arias Hnos. | Lector de Planillas")
+st.set_page_config(page_title="Arias Hnos. | Lector Pro", layout="wide")
+st.title("🚗 Arias Hnos. | Sistema de Precios")
 
-# 1. Cargamos el motor de lectura (solo una vez)
 @st.cache_resource
 def get_reader():
     return easyocr.Reader(['es'])
 
 reader = get_reader()
 
-def limpiar_monto(texto):
+def limpiar_precio(texto):
+    # Solo dejamos números y puntos
     num = re.sub(r'[^0-9.]', '', texto)
-    if len(num) >= 7 and num.startswith(('5', '8', '3')):
+    # Un precio real de Arias Hnos tiene al menos 5 dígitos (ej: 490.000)
+    # Si tiene 2 o 3 dígitos, es un error (ej: 84 meses) [cite: 2026-01-27]
+    if len(num.replace('.', '')) < 5:
+        return None
+    # Quitamos el 5 u 8 rebelde del principio si el número es muy largo [cite: 2026-01-27]
+    if len(num.replace('.', '')) >= 7 and num.startswith(('5', '8', '3')):
         num = num[1:]
-    return f"${num}" if num else "$0"
+    return f"${num}"
 
 # --- INTERFAZ ---
-# Usamos un 'key' dinámico basado en el archivo para forzar el reinicio [cite: 2026-01-27]
-archivo = st.file_uploader("Subí la planilla de Arias Hnos.", type=['jpg', 'jpeg', 'png'])
+archivo = st.file_uploader("Subí la planilla", type=['jpg', 'jpeg', 'png'])
 
 if archivo:
-    st.image(archivo, width=300, caption="Planilla actual")
+    img = Image.open(archivo)
+    st.image(img, width=400)
     
-    with st.spinner('🤖 Analizando nueva planilla...'):
-        # Convertimos imagen y leemos
-        img_pil = Image.open(archivo)
-        res = reader.readtext(np.array(img_pil), detail=0)
+    with st.spinner('🤖 Procesando datos...'):
+        res = reader.readtext(np.array(img), detail=0)
         
-        if res:
-            st.write(f"✅ Se detectaron {len(res)} líneas de texto.")
+        # Diccionario para guardar lo que encontremos
+        modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
+        datos = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
+        
+        modelo_actual = None
+        
+        for i, texto in enumerate(res):
+            t_up = texto.upper()
             
-            # Preparamos la estructura de datos limpia [cite: 2026-01-28]
-            modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
-            tabla_datos = []
-            
+            # 1. Detectar el Modelo
             for mod in modelos:
-                susc = "$0"
-                c1 = "$0"
-                
-                # Buscamos el modelo en la lectura
-                for i, linea in enumerate(res):
-                    if mod in linea.upper():
-                        # Una vez encontrado el auto, buscamos sus datos abajo [cite: 2026-01-27]
-                        for j in range(i+1, min(i+20, len(res))):
-                            # Buscamos Suscripción (más flexible con el texto)
-                            if "SUSCR" in res[j].upper() and j+1 < len(res):
-                                susc = limpiar_monto(res[j+1])
-                            # Buscamos Cuota 1
-                            if "CUOTA NO" in res[j].upper() and j+1 < len(res):
-                                if "." in res[j+1] and len(res[j+1]) > 4:
-                                    c1 = limpiar_monto(res[j+1])
-                                    break # Salimos del bucle de este auto
-                
-                tabla_datos.append({"Modelo": mod, "Suscripción": susc, "Cuota 1": c1})
-
-            # Creamos el DataFrame y lo mostramos
-            df_final = pd.DataFrame(tabla_datos)
-            st.subheader("📊 Tabla Actualizada")
-            st.table(df_final)
+                if mod in t_up:
+                    modelo_actual = mod
             
-        else:
-            st.error("❌ El lector no pudo extraer texto de esta imagen. Probá con una foto más clara.")
+            # 2. Si tenemos un modelo, buscamos sus precios debajo [cite: 2026-01-27]
+            if modelo_actual:
+                if "SUSC" in t_up and i+1 < len(res):
+                    p = limpiar_precio(res[i+1])
+                    if p: datos[modelo_actual]["Susc"] = p
+                
+                if "CUOTA N" in t_up and i+1 < len(res):
+                    p = limpiar_precio(res[i+1])
+                    if p: datos[modelo_actual]["C1"] = p
 
-# Botón para limpiar memoria si se traba
-if st.sidebar.button("♻️ Reiniciar Todo"):
-    st.cache_resource.clear()
+        # Crear tabla
+        df = pd.DataFrame([
+            {"Modelo": m, "Suscripción": datos[m]["Susc"], "Cuota 1": datos[m]["C1"]}
+            for m in modelos
+        ])
+        
+        st.subheader("📊 Tabla de la Foto Actual")
+        st.table(df)
+
+# --- BOTÓN DE CONTROL --- [cite: 2026-01-27]
+if st.sidebar.button("🗑️ LIMPIAR TODO"):
+    st.cache_data.clear()
     st.rerun()
+
+# --- DEBUG: Para que Alejandro vea qué lee la IA si falla ---
+if st.checkbox("🔍 Ver qué está leyendo la IA (Modo Técnico)"):
+    if archivo:
+        st.write(res)

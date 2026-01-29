@@ -5,31 +5,29 @@ import numpy as np
 from PIL import Image
 import re
 
-st.set_page_config(page_title="Gestor Arias Hnos.", page_icon="🚗")
-st.title("🚗 Arias Hnos. | Lector Pro")
+st.set_page_config(page_title="Gestor Arias Hnos.", layout="wide")
+st.title("🚗 Gestor Arias Hnos. | Versión Estable")
 
 @st.cache_resource
-def cargar_lector():
+def load_reader():
     return easyocr.Reader(['es'])
 
-reader = cargar_lector()
+reader = load_reader()
 
-def limpiar_monto(texto):
+def limpiar_precio(texto):
+    # Esta es la limpieza simple que funcionaba en la imagen image_5f0d9f.png [cite: 2026-01-27]
     num = re.sub(r'[^0-9]', '', texto)
     if len(num) >= 7 and num.startswith(('5', '8', '3')):
         num = num[1:]
     return f"${int(num):,}".replace(",", ".") if num else "$0"
 
-# --- INTERFAZ ---
-# Te pregunta si cargar nueva o usar guardada como pediste [cite: 2026-01-27]
-opcion = st.radio("¿Qué desea hacer?", ["Cargar una planilla nueva", "Usar datos guardados"])
+# --- INTERFAZ --- [cite: 2026-01-27]
+opcion = st.radio("Menú:", ["Cargar nueva planilla", "Ver datos guardados"])
 
-if opcion == "Cargar una planilla nueva":
-    archivo = st.file_uploader("Subí la foto de la planilla", type=['jpg', 'jpeg', 'png'])
-    
+if opcion == "Cargar nueva planilla":
+    archivo = st.file_uploader("Subir imagen", type=['jpg', 'jpeg', 'png'])
     if archivo:
-        st.image(archivo, width=250)
-        with st.spinner('🤖 Procesando...'):
+        with st.spinner('Leyendo...'):
             img = Image.open(archivo)
             res = reader.readtext(np.array(img), detail=0)
             
@@ -39,33 +37,31 @@ if opcion == "Cargar una planilla nueva":
             mod_actual = None
             for i, texto in enumerate(res):
                 t_up = texto.upper()
-                for mod in modelos:
-                    if mod in t_up: mod_actual = mod
+                for m in modelos:
+                    if m in t_up: mod_actual = m
                 
                 if mod_actual:
-                    # Lógica original: precio en el renglón siguiente [cite: 2026-01-27]
+                    # Lógica de posición pura (la que no fallaba) [cite: 2026-01-27]
                     if "SUSCRIP" in t_up and i+1 < len(res):
-                        datos[mod_actual]["Susc"] = limpiar_monto(res[i+1])
-                    if "CUOTA N" in t_up and " 1" in t_up and i+1 < len(res):
-                        datos[mod_actual]["C1"] = limpiar_monto(res[i+1])
+                        datos[mod_actual]["Susc"] = limpiar_precio(res[i+1])
+                    if "CUOTA" in t_up and " 1" in t_up and i+1 < len(res):
+                        datos[mod_actual]["C1"] = limpiar_precio(res[i+1])
             
-            st.session_state.viejos = datos
-            st.success("✅ ¡Leído con éxito!")
+            st.session_state.memoria = datos
+            st.success("✅ ¡Lectura terminada!")
 
-# --- MOSTRAR TABLA ---
-if 'viejos' in st.session_state:
-    d = st.session_state.viejos
-    df = pd.DataFrame([{"Modelo": m, "Suscripción": d[m]["Susc"], "Cuota 1": d[m]["C1"]} for m in modelos])
-    st.subheader("📊 Tabla de Precios")
+# --- MOSTRAR TABLA --- [cite: 2026-01-28]
+if 'memoria' in st.session_state:
+    d = st.session_state.memoria
+    df = pd.DataFrame([{"Modelo": m, "Suscripción": d[m]["Susc"], "Cuota 1": d[m]["C1"]} for m in d])
     st.table(df)
     
-    # Botón de Copiar y WhatsApp [cite: 2026-01-27]
-    st.divider()
-    sel = st.selectbox("Elegí el modelo:", modelos)
-    mensaje = f"*Arias Hnos.*\n*Modelo:* {sel}\n✅ *Suscripción:* {d[sel]['Susc']}\n✅ *Cuota 1:* {d[sel]['C1']}"
-    st.text_area("Mensaje para copiar:", mensaje)
-    st.markdown(f"[📲 Enviar por WhatsApp](https://wa.me/?text={mensaje.replace(' ', '%20').replace('\n', '%0A')})")
+    # Botones que pediste [cite: 2026-01-27]
+    sel = st.selectbox("Seleccionar modelo:", list(d.keys()))
+    msj = f"*Arias Hnos.*\n*Auto:* {sel}\n✅ *Suscripción:* {d[sel]['Susc']}\n✅ *Cuota 1:* {d[sel]['C1']}"
+    st.text_area("Mensaje:", msj)
+    st.markdown(f"[📩 Enviar WhatsApp](https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')})")
 
-if st.sidebar.button("🗑️ Borrar Memoria"):
+if st.sidebar.button("♻️ Reiniciar"):
     st.session_state.clear()
     st.rerun()

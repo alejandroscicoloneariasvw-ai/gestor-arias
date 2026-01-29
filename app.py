@@ -61,23 +61,24 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
+    # --- LÓGICA DE PLAN ---
+    tipo_plan = "Plan 100% financiado" if d['Modelo'] == "VIRTUS" else "Plan 70/30"
+
     # --- LÓGICA DE ADJUDICACIÓN PACTADA ---
-    # Solo para estos tres modelos. Los otros (VIRTUS, AMAROK, TAOS) no muestran nada.
     linea_adjudicacion = ""
     if d['Modelo'] in ["TERA", "NIVUS", "T-CROSS"]:
-        linea_adjudicacion = "🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24\n\n"
+        linea_adjudicacion = f"🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24\n\n"
 
     # --- FORMATO WHATSAPP ---
-    # Usamos puntos para miles, pero evitamos que el mensaje interprete cuotas como números de teléfono/links
     def fmt(num):
         return f"{num:,}".replace(",", ".")
 
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\n\n"
            f"🚘 *Vehículo:* {d['Modelo']}\n\n"
            f"*Valor del Auto:* ${fmt(d['VM'])}\n\n"
-           f"*Tipo de Plan:* Plan 70/30\n\n"
+           f"*Tipo de Plan:* {tipo_plan}\n\n"
            f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura de *${fmt(d['CPura'])}*)\n\n"
-           f"{linea_adjudicacion}\n"
+           f"{linea_adjudicacion}"
            f"*Detalle de Inversión Inicial:*\n"
            f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\n"
            f"* *Cuota Nº 1:* ${fmt(d['C1'])}\n"
@@ -90,16 +91,15 @@ if st.session_state.lista_precios:
            f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\n"
            f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\n"
            f"* *Cuota Pura:* ${fmt(d['CPura'])}\n\n"
-           f"Los cupos con este beneficio de ingreso son limitados por la vigencia de la planilla. "
-           f"Si queda alguna duda a disposición. Si quieres avanzar mándame por este medio foto de DNI de adelante y de atrás "
-           f"y te comento como realizaremos este pago Beneficio. 🎈🎈")
+           f"⚠️ *IMPORTANTE:* Los cupos con este beneficio de ingreso son limitados por stock de planilla. "
+           f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 💼✅")
 
     st.subheader("📋 Presupuesto para Copiar")
     st.code(msj, language=None)
     
     st.divider()
-    st.write("👇 **Carga Manual (Respaldo):**")
-    st.text_area("Seleccioná y copiá de acá:", msj, height=250)
+    st.write("👇 **Respaldo Manual:**")
+    st.text_area("Seleccioná y copiá:", msj, height=250)
 
 else:
     st.info("👋 Alejandro, cargá los datos para empezar.")

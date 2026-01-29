@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import re
 
-st.set_page_config(page_title="Arias Hnos. | Lector Pro", layout="wide")
+st.set_page_config(page_title="Arias Hnos. | Lector Pro")
 st.title("🚗 Arias Hnos. | Sistema de Precios")
 
 @st.cache_resource
@@ -14,64 +14,56 @@ def get_reader():
 
 reader = get_reader()
 
-def extraer_precios_logicos(lista_texto):
-    """Filtra solo los números que pueden ser cuotas de Arias Hnos."""
-    precios = []
-    for t in lista_texto:
-        num = re.sub(r'[^0-9]', '', t)
-        if 100000 < int(num or 0) < 3000000: # Rango: entre 100k y 3M
-            # Limpieza del 5/8 inicial si el número quedó muy largo
-            if len(num) == 7 and num.startswith(('5', '8', '3')):
-                num = num[1:]
-            precios.append(int(num))
-    return precios
+def limpiar_precio(texto):
+    num = re.sub(r'[^0-9]', '', texto)
+    if num and len(num) >= 5:
+        # Solo quita el 5 u 8 si el número es muy largo (signo $ mal leído) [cite: 2026-01-27]
+        if len(num) >= 7 and num.startswith(('5', '8', '3')):
+            num = num[1:]
+        return f"${int(num):,}".replace(",", ".")
+    return "$0"
 
-# --- MENÚ ---
+# --- INTERFAZ SOLICITADA --- [cite: 2026-01-27]
 opcion = st.radio("¿Qué desea hacer?", ["Cargar planilla nueva", "Usar datos guardados"])
 
 if opcion == "Cargar planilla nueva":
-    archivo = st.file_uploader("Subí la planilla", type=['jpg', 'jpeg', 'png'])
+    archivo = st.file_uploader("Subí la foto", type=['jpg', 'jpeg', 'png'])
     if archivo:
-        with st.spinner('🤖 Interpretando como humano...'):
+        with st.spinner('🤖 Leyendo...'):
             img = Image.open(archivo)
-            # detail=1 nos da la posición en la hoja para no mezclar modelos
-            res = reader.readtext(np.array(img)) 
+            res = reader.readtext(np.array(img), detail=0)
             
             modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
             datos = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
             
-            for mod in modelos:
-                encontrado = False
-                for i, (bbox, texto, prob) in enumerate(res):
-                    if mod in texto.upper():
-                        # Buscamos los siguientes 15 bloques de texto cerca del modelo
-                        bloques_cercanos = [r[1] for r in res[i+1 : i+15]]
-                        precios = extraer_precios_logicos(bloques_cercanos)
-                        
-                        if len(precios) >= 2:
-                            # El más alto suele ser la suscripción, el otro la cuota
-                            susc = max(precios)
-                            cuota = min(precios)
-                            datos[mod]["Susc"] = f"${susc:,}".replace(",", ".")
-                            datos[mod]["C1"] = f"${cuota:,}".replace(",", ".")
-                            encontrado = True
-                            break
+            mod_actual = None
+            for i, texto in enumerate(res):
+                t_up = texto.upper()
+                for m in modelos:
+                    if m in t_up: mod_actual = m
+                
+                if mod_actual:
+                    # Lógica original: precio en el bloque siguiente [cite: 2026-01-27]
+                    if "SUSC" in t_up and i+1 < len(res):
+                        datos[mod_actual]["Susc"] = limpiar_precio(res[i+1])
+                    if "CUOTA" in t_up and i+1 < len(res):
+                        datos[mod_actual]["C1"] = limpiar_precio(res[i+1])
             
-            st.session_state.memoria_pro = datos
-            st.success("✅ Planilla leída correctamente")
+            st.session_state.viejos_datos = datos
 
-# --- INTERFAZ DE SALIDA ---
-if 'memoria_pro' in st.session_state:
-    d = st.session_state.memoria_pro
+# --- MOSTRAR TABLA --- [cite: 2026-01-28]
+if 'viejos_datos' in st.session_state:
+    d = st.session_state.viejos_datos
     df = pd.DataFrame([{"Modelo": m, "Suscripción": d[m]["Susc"], "Cuota 1": d[m]["C1"]} for m in modelos])
     st.table(df)
-
+    
+    # Botón de Copiar y WhatsApp [cite: 2026-01-27]
     st.divider()
-    sel = st.selectbox("Seleccioná el modelo:", modelos)
-    msg = f"*Arias Hnos.*\n*Vehículo:* {sel}\n✅ *Suscripción:* {d[sel]['Susc']}\n✅ *Cuota 1:* {d[sel]['C1']}"
-    st.text_area("Mensaje listo:", msg)
-    st.markdown(f"[📲 Enviar WhatsApp](https://wa.me/?text={msg.replace(' ', '%20').replace('\n', '%0A')})")
+    sel = st.selectbox("Elegí el modelo:", modelos)
+    mensaje = f"*Arias Hnos.*\n*Auto:* {sel}\n✅ *Suscripción:* {d[sel]['Susc']}\n✅ *Cuota 1:* {d[sel]['C1']}"
+    st.text_area("Copiá desde acá:", mensaje)
+    st.markdown(f"[📲 Enviar por WhatsApp](https://wa.me/?text={mensaje.replace(' ', '%20').replace('\n', '%0A')})")
 
-if st.sidebar.button("🗑️ Reset"):
+if st.sidebar.button("🗑️ LIMPIAR"):
     st.session_state.clear()
     st.rerun()

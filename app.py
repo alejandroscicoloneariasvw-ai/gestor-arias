@@ -5,15 +5,25 @@ import pandas as pd
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 st.title("🚗 Arias Hnos. | Presupuestos")
 
-# --- CSS PARA ACHICAR EL CUADRO A LA FUERZA ---
+# --- TRUCO VISUAL: Achicamos el cuadro de copiado al máximo ---
 st.markdown("""
     <style>
+    /* Achicamos el bloque de código para que casi no ocupe espacio */
     .stCodeBlock {
-        height: 120px !important;
-        overflow-y: auto !important;
+        margin-top: -10px !important;
+        margin-bottom: 0px !important;
     }
-    code {
-        font-size: 11px !important;
+    .stCodeBlock div {
+        height: 45px !important; /* Altura mínima para que solo se vea el botón de copiar */
+    }
+    /* Estilo para el cartel de instrucción */
+    .instruccion {
+        background-color: #f0f2f6;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 5px solid #ff4b4b;
+        margin-bottom: 5px;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -26,7 +36,7 @@ if 'fecha_vigencia' not in st.session_state:
 # --- 1. CARGA DE DATOS (Sidebar) ---
 with st.sidebar:
     st.header("📥 Carga")
-    modo = st.sidebar.radio("Método:", ["Manual", "Archivo (.txt)"])
+    modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
     if modo == "Manual":
         with st.form("f"):
             st.session_state.fecha_vigencia = st.text_input("Fecha:", st.session_state.fecha_vigencia)
@@ -71,7 +81,7 @@ if st.session_state.lista_precios:
            f"🚘 *Vehículo:* {d['Modelo']}\n\n*Valor del Auto:* ${fmt(d['VM'])}\n\n*Tipo de Plan:* {tp}\n\n"
            f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\n\n{adj}"
            f"*Detalle de Inversión Inicial:*\n* *Suscripción a Financiación:* ${fmt(d['Susc'])}\n* *Cuota Nº 1:* ${fmt(d['C1'])}\n"
-           f"* *Costo Normal de Ingreso:* ${fmt(d['Susc']+d['C1'])}. (Ver Beneficio 👇)\n\n"
+           f"* *Costo Normal de Ingreso:* ${fmt(d['Susc']+d['C1'])}. (Ver Beneficio Exclusivo 👇)\n\n"
            f"-----------------------------------------------------------\n"
            f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${fmt(d['Adh'])}*, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n\n"
            f"💰 *AHORRO DIRECTO HOY: ${fmt(ah)}*\n"
@@ -81,10 +91,14 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- EL "ENGAÑO": Cuadro de copiado forzado a ser chiquito ---
-    st.write("📋 **Copiá desde este cuadrito (Clic arriba a la derecha):**")
+    # --- DISEÑO FINAL ---
+    st.markdown('<div class="instruccion">👉 TOCÁ LAS HOJITAS PARA COPIAR:</div>', unsafe_allow_html=True)
+    
+    # Este es el cuadro que sí copia, pero lo "apretamos" para que solo se vea el botón de las hojitas
     st.code(msj, language=None)
     
-    st.success("Recordá: Seleccioná el auto, hacé clic en el ícono de las 'hojitas' en el cuadro gris y pegá en WhatsApp.")
+    st.divider()
+    with st.expander("Revisar texto completo"):
+        st.text(msj)
 else:
     st.info("Cargá datos a la izquierda.")

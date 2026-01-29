@@ -16,6 +16,7 @@ reader = get_reader()
 
 def limpiar_precio(texto):
     num = re.sub(r'[^0-9]', '', texto)
+    # Filtro estricto: si el número es muy chico o muy grande, no es un precio [cite: 2026-01-27]
     if not num or len(num) < 5 or len(num) > 7: 
         return None
     if len(num) == 7 and num.startswith(('5', '8', '3')):
@@ -30,7 +31,7 @@ opcion = st.radio("Menú Principal:", ["Cargar una planilla nueva", "Usar datos 
 if opcion == "Cargar una planilla nueva":
     archivo = st.file_uploader("Subí la planilla amarilla", type=['jpg', 'jpeg', 'png'])
     if archivo:
-        with st.spinner('🚀 Organizando cuotas correctamente...'):
+        with st.spinner('🚀 Procesando y ordenando cuotas...'):
             img = Image.open(archivo)
             res = reader.readtext(np.array(img), detail=0)
             
@@ -44,44 +45,43 @@ if opcion == "Cargar una planilla nueva":
                     if m in t_up: mod_actual = m
                 
                 if mod_actual:
-                    # 1. SUSCRIPCIÓN (Tu lógica original que no falla)
+                    # 1. SUSCRIPCIÓN (Se mantiene tu lógica estable)
                     if "SUSC" in t_up and datos[mod_actual]["Susc"] == 0:
-                        for j in range(1, 4):
+                        for j in range(1, 5):
                             if i+j < len(res):
                                 p = limpiar_precio(res[i+j])
                                 if p:
                                     datos[mod_actual]["Susc"] = p
                                     break
                     
-                    # 2. LAS CUOTAS (Buscamos los 3 montos restantes)
+                    # 2. CUOTAS (Filtro por tamaño para evitar desorden)
                     if "CUOTA" in t_up and "12" not in t_up and "84" not in t_up:
                         if datos[mod_actual]["C1"] == 0:
                             encontrados = []
-                            for j in range(1, 12):
+                            # Miramos más adelante para no perder ninguna columna [cite: 2026-01-27]
+                            for j in range(1, 15): 
                                 if i+j < len(res):
                                     p = limpiar_precio(res[i+j])
-                                    # Evitamos repetir la suscripción y montos locos
-                                    if p and p != datos[mod_actual]["Susc"] and p > 100000:
+                                    # Solo tomamos números que no sean la suscripción y sean precios lógicos
+                                    if p and p != datos[mod_actual]["Susc"] and p > 150000:
                                         if p not in encontrados: encontrados.append(p)
                             
-                            # Lógica de orden para la planilla Amarilla:
-                            # Cuota 1 es la más grande, luego 2-13, luego 14-84
+                            # Ordenamos de Mayor a Menor: C1 > C2-13 > C14-84 [cite: 2026-01-27]
                             if len(encontrados) >= 3:
-                                encontrados.sort(reverse=True) # Ordena de mayor a menor
+                                encontrados.sort(reverse=True)
                                 datos[mod_actual]["C1"] = encontrados[0]
                                 datos[mod_actual]["C2_13"] = encontrados[1]
                                 datos[mod_actual]["C14_84"] = encontrados[2]
 
-            # Formateo Final
             st.session_state.memoria_final = {m: {
                 "Susc": f"${datos[m]['Susc']:,}".replace(",", ".") if datos[m]["Susc"] > 0 else "$0",
                 "C1": f"${datos[m]['C1']:,}".replace(",", ".") if datos[m]["C1"] > 0 else "$0",
                 "C2_13": f"${datos[m]['C2_13']:,}".replace(",", ".") if datos[m]["C2_13"] > 0 else "$0",
                 "C14_84": f"${datos[m]['C14_84']:,}".replace(",", ".") if datos[m]["C14_84"] > 0 else "$0"
             } for m in modelos}
-            st.success("✅ ¡Ahora sí! Precios ordenados.")
+            st.success("✅ ¡Valores corregidos y ordenados!")
 
-# --- MOSTRAR TABLA Y WHATSAPP ---
+# --- VISTA Y WHATSAPP ---
 if st.session_state.memoria_final:
     d = st.session_state.memoria_final
     modelos_lista = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
@@ -89,13 +89,13 @@ if st.session_state.memoria_final:
     st.table(pd.DataFrame(df_data))
     
     st.divider()
-    sel = st.selectbox("Modelo para enviar:", modelos_lista)
+    sel = st.selectbox("Seleccioná el modelo:", modelos_lista)
     msj = (f"*Arias Hnos.*\n*Auto:* {sel}\n"
            f"✅ *Suscripción:* {d[sel]['Susc']}\n"
            f"✅ *Cuota 1:* {d[sel]['C1']}\n"
            f"✅ *Cuotas 2 a 13:* {d[sel]['C2_13']}\n"
            f"✅ *Cuotas 14 a 84:* {d[sel]['C14_84']}")
-    st.text_area("Copiá:", msj, height=150)
+    st.text_area("Copiá el texto:", msj, height=150)
     st.markdown(f"[📲 Enviar por WhatsApp](https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')})")
 
 if st.sidebar.button("🗑️ Reset"):

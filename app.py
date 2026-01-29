@@ -5,22 +5,28 @@ import pandas as pd
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 st.title("🚗 Arias Hnos. | Presupuestos")
 
-# --- EL TRUCO: Forzamos al cuadro a ser una "línea" de copiado ---
+# --- CSS PARA EL MINIBOTÓN DE 2CM X 2CM ---
 st.markdown("""
     <style>
-    /* Achicamos el bloque de código al mínimo */
+    /* Forzamos el bloque de código a ser un cuadradito pequeño */
     .stCodeBlock {
-        height: 55px !important;
+        width: 80px !important;
+        height: 80px !important;
         overflow: hidden !important;
+        border: 2px solid #007bff !important;
+        border-radius: 10px !important;
     }
     .stCodeBlock div {
-        height: 55px !important;
+        height: 80px !important;
     }
-    /* Estilo para el botón de ayuda visual */
+    /* Ocultamos el texto dentro del cuadradito para que solo se vea el botón */
+    .stCodeBlock pre {
+        visibility: hidden !important;
+    }
     .instruccion {
         color: #007bff;
         font-weight: bold;
-        margin-bottom: -15px;
+        font-size: 14px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -88,12 +94,17 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- DISEÑO FINAL ---
-    st.markdown('<p class="instruccion">📋 HACÉ CLIC EN LAS HOJITAS PARA COPIAR:</p>', unsafe_allow_html=True)
-    st.code(msj, language=None)
+    # --- DISEÑO ULTRA COMPACTO ---
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.markdown('<p class="instruccion">COPIAR:</p>', unsafe_allow_html=True)
+        st.code(msj, language=None) # El CSS lo convierte en un cuadradito
     
+    with col2:
+        st.write("⬅️ Tocá el icono azul para copiar todo el presupuesto.")
+
     st.divider()
-    with st.expander("🔍 Revisar presupuesto antes de enviar"):
-        st.text(msj)
+    with st.expander("🔍 Ver presupuesto / Pegado manual"):
+        st.text_area("Texto para WhatsApp:", msj, height=200)
 else:
     st.info("Cargá datos a la izquierda.")

@@ -15,29 +15,27 @@ with st.sidebar:
     modo = st.radio("Método:", ["Manual / Editar", "Subir Archivo (.txt)"])
     
     if modo == "Manual / Editar":
-        # 1. Selector de modelo para editar
         mod_a_editar = st.selectbox("Modelo a modificar:", ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"])
-        
-        # 2. Buscamos si ya existen datos de ese modelo en la lista
         datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == mod_a_editar), None)
         
         with st.form("f_editar"):
             st.write(f"Editando: **{mod_a_editar}**")
-            # Si existen datos previos, los usamos como valor inicial ('value'), si no, ponemos 0
-            vm = st.number_input("Valor Móvil", value=datos_previos['VM'] if datos_previos else 0)
-            su = st.number_input("Suscripción", value=datos_previos['Susc'] if datos_previos else 0)
-            c1 = st.number_input("Cuota 1", value=datos_previos['C1'] if datos_previos else 0)
-            ad = st.number_input("Paga con Beneficio", value=datos_previos['Adh'] if datos_previos else 0)
-            c2 = st.number_input("Cuota 2-13", value=datos_previos['C2_13'] if datos_previos else 0)
-            cf = st.number_input("Cuota Final", value=datos_previos['CFin'] if datos_previos else 0)
-            cp = st.number_input("Cuota Pura", value=datos_previos['CPura'] if datos_previos else 0)
+            
+            # --- AGREGAMOS 'format="%d"' PARA QUE NO USE COMAS Y SE VEA LIMPIO ---
+            # Streamlit no permite puntos dinámicos en la entrada, pero podemos usar step=1000
+            vm = st.number_input("Valor Móvil", value=datos_previos['VM'] if datos_previos else 0, step=1000)
+            su = st.number_input("Suscripción", value=datos_previos['Susc'] if datos_previos else 0, step=1000)
+            c1 = st.number_input("Cuota 1", value=datos_previos['C1'] if datos_previos else 0, step=1000)
+            ad = st.number_input("Paga con Beneficio", value=datos_previos['Adh'] if datos_previos else 0, step=1000)
+            c2 = st.number_input("Cuota 2-13", value=datos_previos['C2_13'] if datos_previos else 0, step=1000)
+            cf = st.number_input("Cuota Final", value=datos_previos['CFin'] if datos_previos else 0, step=1000)
+            cp = st.number_input("Cuota Pura", value=datos_previos['CPura'] if datos_previos else 0, step=1000)
             
             if st.form_submit_button("✅ Guardar Cambios"):
                 nuevo = {"Modelo": mod_a_editar, "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp}
-                # Filtramos la lista para sacar el viejo y meter el nuevo actualizado
                 st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
                 st.session_state.lista_precios.append(nuevo)
-                st.success(f"{mod_a_editar} actualizado correctamente")
+                st.success(f"{mod_a_editar} actualizado")
                 st.rerun()
     else:
         arc = st.file_uploader("Subir .txt", type=['txt'])
@@ -52,18 +50,17 @@ with st.sidebar:
                     try: temp.append({"Modelo": p[0].strip(), "VM": int(float(p[1])), "Susc": int(float(p[2])), "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), "CFin": int(float(p[6])), "CPura": int(float(p[7]))})
                     except: continue
             st.session_state.lista_precios = temp
-            st.success("Archivo cargado")
 
-# --- INTERFAZ DE VISTA (El botón azul de copiado) ---
+# --- INTERFAZ DE VISTA ---
 if st.session_state.lista_precios:
     st.title("🚗 Arias Hnos.")
     mod_sel = st.selectbox("🎯 Seleccionar para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
+    # Formateo con puntos para el mensaje final
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     
-    # Lógica de planes
     if d['Modelo'] == "VIRTUS": tp = "Plan 100% financiado"
     elif d['Modelo'] in ["AMAROK", "TAOS"]: tp = "Plan 60/40"
     else: tp = "Plan 70/30"

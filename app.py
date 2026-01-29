@@ -61,45 +61,55 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # --- LÓGICA DE PLAN ---
+    # Lógica de Plan
     tipo_plan = "Plan 100% financiado" if d['Modelo'] == "VIRTUS" else "Plan 70/30"
 
-    # --- LÓGICA DE ADJUDICACIÓN PACTADA ---
+    # Lógica de Adjudicación
     linea_adjudicacion = ""
     if d['Modelo'] in ["TERA", "NIVUS", "T-CROSS"]:
         linea_adjudicacion = f"🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24\n\n"
 
-    # --- FORMATO WHATSAPP ---
     def fmt(num):
         return f"{num:,}".replace(",", ".")
 
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\n\n"
-           f"🚘 *Vehículo:* {d['Modelo']}\n\n"
-           f"*Valor del Auto:* ${fmt(d['VM'])}\n\n"
-           f"*Tipo de Plan:* {tipo_plan}\n\n"
-           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura de *${fmt(d['CPura'])}*)\n\n"
-           f"{linea_adjudicacion}"
-           f"*Detalle de Inversión Inicial:*\n"
-           f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\n"
-           f"* *Cuota Nº 1:* ${fmt(d['C1'])}\n"
-           f"* *Costo Normal de Ingreso:* ${fmt(costo_normal)}. (Ver Beneficio Exclusivo 👇)\n\n"
-           f"-----------------------------------------------------------\n"
-           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${fmt(d['Adh'])}*, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n\n"
-           f"💰 *AHORRO DIRECTO HOY: ${fmt(ahorro)}*\n"
-           f"-----------------------------------------------------------\n\n"
-           f"*Esquema de cuotas posteriores:*\n"
-           f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\n"
-           f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\n"
-           f"* *Cuota Pura:* ${fmt(d['CPura'])}\n\n"
-           f"⚠️ *IMPORTANTE:* Los cupos con este beneficio de ingreso son limitados por stock de planilla. "
-           f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 💼✅")
+    # --- MENSAJE PARA COPIAR (TEXTO PLANO PARA WHATSAPP) ---
+    msj_whatsapp = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\n\n"
+                    f"🚘 *Vehículo:* {d['Modelo']}\n\n"
+                    f"*Valor del Auto:* ${fmt(d['VM'])}\n\n"
+                    f"*Tipo de Plan:* {tipo_plan}\n\n"
+                    f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura de *${fmt(d['CPura'])}*)\n\n"
+                    f"{linea_adjudicacion}"
+                    f"*Detalle de Inversión Inicial:*\n"
+                    f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\n"
+                    f"* *Cuota Nº 1:* ${fmt(d['C1'])}\n"
+                    f"* *Costo Normal de Ingreso:* ${fmt(costo_normal)}. (Ver Beneficio Exclusivo 👇)\n\n"
+                    f"-----------------------------------------------------------\n"
+                    f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${fmt(d['Adh'])}*, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n\n"
+                    f"💰 *AHORRO DIRECTO HOY: ${fmt(ahorro)}*\n"
+                    f"-----------------------------------------------------------\n\n"
+                    f"*Esquema de cuotas posteriores:*\n"
+                    f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\n"
+                    f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\n"
+                    f"* *Cuota Pura:* ${fmt(d['CPura'])}\n\n"
+                    f"⚠️ *IMPORTANTE:* Los cupos con este beneficio de ingreso son limitados por stock de planilla. "
+                    f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 💼✅")
 
-    st.subheader("📋 Presupuesto para Copiar")
-    st.code(msj, language=None)
-    
+    # --- VISTA PREVIA VISUAL (PARA QUE SE VEA LINDO EN EL PROGRAMA) ---
+    st.subheader("📱 Vista Previa del Mensaje")
+    # Convertimos el formato de WhatsApp a algo que Streamlit muestre con estilo
+    msj_preview = msj_whatsapp.replace("*", "**").replace("_", "*")
+    st.markdown(f"""
+    <div style="background-color: #e5ddd5; padding: 20px; border-radius: 10px; border: 1px solid #ccc; color: #000; font-family: sans-serif;">
+        <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); white-space: pre-wrap;">
+{msj_preview}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.divider()
-    st.write("👇 **Respaldo Manual:**")
-    st.text_area("Seleccioná y copiá:", msj, height=250)
+    st.subheader("📋 Zona de Copiado")
+    st.write("Copiá desde este recuadro para que WhatsApp reconozca las negritas y emojis:")
+    st.code(msj_whatsapp, language=None)
 
 else:
     st.info("👋 Alejandro, cargá los datos para empezar.")

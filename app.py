@@ -1,106 +1,81 @@
 import streamlit as st
 import pandas as pd
-import easyocr
-import numpy as np
-from PIL import Image
-import re
 
-st.set_page_config(page_title="Arias Hnos. | Gestión de Datos", layout="wide")
-st.title("🚗 Arias Hnos. | Sistema de Precios Profesional")
+st.set_page_config(page_title="Arias Hnos. | Ventas", layout="wide")
+st.title("🚗 Arias Hnos. | Generador de Presupuestos")
 
-@st.cache_resource
-def get_reader():
-    return easyocr.Reader(['es'])
+if 'lista_precios' not in st.session_state:
+    st.session_state.lista_precios = []
 
-reader = get_reader()
+# --- 1. CARGA DE DATOS ---
+st.sidebar.header("📥 Carga de Datos")
+modo = st.sidebar.radio("Método:", ["Carga Manual", "Subir archivo (.txt)"])
 
-def limpiar_precio(texto):
-    num = re.sub(r'[^0-9]', '', texto)
-    if not num or len(num) < 5 or len(num) > 7: return None
-    if len(num) == 7 and num.startswith(('5', '8', '3')): num = num[1:]
-    return int(num)
+if modo == "Carga Manual":
+    with st.sidebar.form("form_carga", clear_on_submit=True):
+        modelo = st.selectbox("Modelo", ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"])
+        v_movil = st.number_input("Valor Móvil", min_value=0)
+        suscrip = st.number_input("Suscripción Lista", min_value=0)
+        c1 = st.number_input("Cuota 1 Lista", min_value=0)
+        adherido = st.number_input("Beneficio Adherido (Lo que paga)", min_value=0)
+        c2_13 = st.number_input("Cuota 2 a 13", min_value=0)
+        c_final = st.number_input("Cuota Final", min_value=0)
+        c_pura = st.number_input("Cuota Pura", min_value=0)
+        if st.form_submit_button("💾 Guardar"):
+            nuevo = {"Modelo": modelo, "VM": v_movil, "Susc": suscrip, "C1": c1, "Adh": adherido, "C2_13": c2_13, "CFin": c_final, "CPura": c_pura}
+            st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != modelo]
+            st.session_state.lista_precios.append(nuevo)
+            st.rerun()
+else:
+    archivo = st.sidebar.file_uploader("Subí tu .txt", type=['txt'])
+    if archivo:
+        lineas = archivo.getvalue().decode("utf-8").split("\n")
+        temp = []
+        for l in lineas:
+            p = l.split(",")
+            if len(p) >= 8:
+                temp.append({"Modelo": p[0], "VM": int(p[1]), "Susc": int(p[2]), "C1": int(p[3]), "Adh": int(p[4]), "C2_13": int(p[5]), "CFin": int(p[6]), "CPura": int(p[7])})
+        st.session_state.lista_precios = temp
 
-# --- MENÚ DE NAVEGACIÓN ---
-menu = st.sidebar.radio("Seleccioná Tarea:", ["1. Procesar Planilla Nueva", "2. Trabajar con Datos Guardados"])
+# --- 2. SELECTOR Y CONSULTA ---
+if st.session_state.lista_precios:
+    st.divider()
+    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
+    d = next(a for a in st.session_state.lista_precios if a['Modelo'] == modelo_sel)
 
-# --- VARIABLES DE SESIÓN ---
-if 'datos_mes' not in st.session_state:
-    st.session_state.datos_mes = None
+    # CÁLCULOS
+    costo_normal = d['Susc'] + d['C1']
+    ahorro = costo_normal - d['Adh']
 
-# --- OPCIÓN 1: EXTRACCIÓN Y GENERACIÓN DE ARCHIVO ---
-if menu == "1. Procesar Planilla Nueva":
-    st.header("📸 Extractor de Imagen a Texto")
-    archivo_img = st.file_uploader("Subí la planilla (Amarilla o Roja)", type=['jpg', 'jpeg', 'png'])
+    # --- 3. FORMATO LLAMATIVO (CON EMOJIS Y SEPARADORES) ---
+    msj = (f"━━━━━━━━━━━━━━━━━━━\n"
+           f"🏛️  *ARIAS HNOS. - Presupuesto Oficial*\n"
+           f"📅  *Vigencia:* 05/12/2025\n"
+           f"━━━━━━━━━━━━━━━━━━━\n\n"
+           f"🚘  *Vehículo:* _{d['Modelo']}_\n\n"
+           f"💰  *Valor del Auto:* ${d['VM']:,}\n"
+           f"📝  *Tipo de Plan:* Plan 70/30\n"
+           f"⏳  *Plazo:* 84 Cuotas\n"
+           f"🎯  *(Pre-cancelables a Cuota Pura de ${d['CPura']:,})*\n\n"
+           f"━━━━━━━━━━━━━━━━━━━\n"
+           f"📑  *DETALLE DE INVERSIÓN INICIAL:*\n"
+           f"• Suscripción a Financiación: ${d['Susc']:,}\n"
+           f"• Cuota Nº 1: ${d['C1']:,}\n"
+           f"• *Costo Normal de Ingreso:* ${costo_normal:,}\n"
+           f"━━━━━━━━━━━━━━━━━━━\n\n"
+           f"🔥  *BENEFICIO EXCLUSIVO:*\n"
+           f"Abonando solo *${d['Adh']:,}*, ya cubrís el **INGRESO COMPLETO** (Cuota 1 + Suscripción).\n\n"
+           f"🎁  *AHORRO DIRECTO HOY:  ${ahorro:,}*\n\n"
+           f"━━━━━━━━━━━━━━━━━━━\n"
+           f"📉  *ESQUEMA DE CUOTAS POSTERIORES:*\n"
+           f"✅  *Cuotas 2 a 13:* ${d['C2_13']:,}\n"
+           f"✅  *Cuotas 14 a 84:* ${d['CFin']:,}\n"
+           f"✅  *Cuota Pura:* ${d['CPura']:,}\n\n"
+           f"⚠️  _Los cupos con este beneficio son limitados por stock de planilla._\n\n"
+           f"Si quieres avanzar, mándame foto de tu **DNI (frente y dorso)** y te explico cómo asegurar este beneficio. 📲").replace(",", ".")
+
+    st.subheader("📱 Vista Previa del Presupuesto Llamativo")
+    st.info(msj)
     
-    if archivo_img:
-        with st.spinner('🤖 Extrayendo datos...'):
-            img = Image.open(archivo_img)
-            res = reader.readtext(np.array(img), detail=0)
-            
-            modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
-            lineas_txt = []
-            
-            for i, texto in enumerate(res):
-                t_up = texto.upper()
-                for m in modelos:
-                    if m in t_up:
-                        encontrados = []
-                        for j in range(1, 20):
-                            if i + j < len(res):
-                                p = limpiar_precio(res[i+j])
-                                if p and p not in encontrados: encontrados.append(p)
-                                if len(encontrados) == 4: break
-                        
-                        if len(encontrados) == 4:
-                            linea = f"{m},{encontrados[0]},{encontrados[1]},{encontrados[2]},{encontrados[3]}"
-                            lineas_txt.append(linea)
-
-            contenido_txt = "\n".join(lineas_txt)
-            
-            st.warning("⚠️ Revisá que los números coincidan con la foto. Podés editarlos acá abajo directamente.")
-            editado = st.text_area("Formato: MODELO,Suscripción,Cuota1,Cuota2-13,Cuota14-84", contenido_txt, height=200)
-            
-            st.download_button(
-                label="💾 DESCARGAR ARCHIVO TXT (Maestro del Mes)",
-                data=editado,
-                file_name="precios_autos.txt",
-                mime="text/plain"
-            )
-
-# --- OPCIÓN 2: CARGAR EL TXT Y USAR EL PROGRAMA ---
-elif menu == "2. Trabajar con Datos Guardados":
-    st.header("📂 Panel de Ventas")
-    archivo_txt = st.file_uploader("Subí tu archivo de precios (.txt)", type=['txt'])
-    
-    if archivo_txt:
-        stringio = archivo_txt.getvalue().decode("utf-8")
-        filas = [f for f in stringio.split("\n") if f.strip()]
-        
-        datos_para_tabla = {}
-        for f in filas:
-            p = f.split(",")
-            if len(p) == 5:
-                datos_para_tabla[p[0]] = {
-                    "Susc": f"${int(p[1]):,}".replace(",", "."),
-                    "C1": f"${int(p[2]):,}".replace(",", "."),
-                    "C2_13": f"${int(p[3]):,}".replace(",", "."),
-                    "C14_84": f"${int(p[4]):,}".replace(",", ".")
-                }
-        
-        # Mostrar Tabla
-        df_list = [{"Modelo": k, "Suscripción": v["Susc"], "Cuota 1": v["C1"], "C 2-13": v["C2_13"], "C 14-84": v["C14_84"]} for k, v in datos_para_tabla.items()]
-        st.table(pd.DataFrame(df_list))
-        
-        st.divider()
-        
-        # WhatsApp
-        sel = st.selectbox("Elegí el auto para enviar presupuesto:", list(datos_para_tabla.keys()))
-        d = datos_para_tabla[sel]
-        msj = (f"*Arias Hnos.*\n*Auto:* {sel}\n"
-               f"✅ *Suscripción:* {d['Susc']}\n"
-               f"✅ *Cuota 1:* {d['C1']}\n"
-               f"✅ *Cuotas 2 a 13:* {d['C2_13']}\n"
-               f"✅ *Cuotas 14 a 84:* {d['C14_84']}")
-        
-        st.text_area("Mensaje listo para copiar:", msj, height=150)
-        st.markdown(f"[📲 Enviar por WhatsApp](https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')})")
+    link_wa = f"https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')}"
+    st.markdown(f"### [🚀 ENVIAR POR WHATSAPP CON ESTE FORMATO]({link_wa})")

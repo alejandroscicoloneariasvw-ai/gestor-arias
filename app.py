@@ -6,13 +6,12 @@ from PIL import Image
 import re
 
 st.set_page_config(page_title="Gestor Arias Hnos.", page_icon="🚗")
-st.title("🚗 Arias Hnos. | Lector Pro")
+st.title("🚗 Arias Hnos. | Lector Instantáneo")
 
-@st.cache_resource
-def cargar_lector():
-    return easyocr.Reader(['es'])
-
-reader = cargar_lector()
+# Cargamos el lector una sola vez para que no sea lento
+if 'reader' not in st.session_state:
+    with st.spinner('Iniciando sistema...'):
+        st.session_state.reader = easyocr.Reader(['es'])
 
 def limpiar_monto(texto):
     num = re.sub(r'[^0-9.]', '', texto)
@@ -20,50 +19,49 @@ def limpiar_monto(texto):
         num = num[1:]
     return f"${num}" if num else "$0"
 
-# Botón de reinicio en la barra lateral
-if st.sidebar.button("🗑️ BORRAR TODO Y EMPEZAR"):
-    st.cache_data.clear()
-    st.session_state.clear()
-    st.rerun()
-
-archivo = st.file_uploader("Subí la planilla de Arias Hnos.", type=['jpg', 'jpeg', 'png'])
+# --- INTERFAZ ---
+archivo = st.file_uploader("Subí la planilla", type=['jpg', 'jpeg', 'png'])
 
 if archivo:
-    st.image(archivo, width=250, caption="Planilla para procesar")
+    # 1. Mostrar la imagen inmediatamente
+    st.image(archivo, width=250)
     
-    with st.spinner('🤖 Procesando planilla... por favor esperá...'):
+    # 2. PROCESAR SIEMPRE (Sin memoria vieja) [cite: 2026-01-27]
+    with st.spinner('🤖 Leyendo datos actuales...'):
         img = Image.open(archivo)
-        res = reader.readtext(np.array(img), detail=0)
+        res = st.session_state.reader.readtext(np.array(img), detail=0)
         
-        # Estructura de la tabla [cite: 2026-01-27]
-        datos_nuevos = {
-            "Modelo": ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"],
-            "Suscripción": ["$0"]*6,
-            "Cuota 1": ["$0"]*6
-        }
-        df_temp = pd.DataFrame(datos_nuevos)
+        modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
+        resultados_dict = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
         
-        if len(res) > 0:
+        if res:
             modelos_map = {"TERA": 0, "VIRTUS": 1, "T-CROSS": 2, "NIVUS": 3, "AMAROK": 4, "TAOS": 5}
             for i, texto in enumerate(res):
                 t_up = texto.upper()
-                for mod, fila in modelos_map.items():
+                for mod in modelos:
                     if mod in t_up:
+                        # Buscamos datos para este modelo
                         for j in range(i+1, min(i+20, len(res))):
-                            # Captura Suscripción [cite: 2026-01-27]
                             if "Suscrip" in res[j] and j+1 < len(res):
-                                df_temp.at[fila, "Suscripción"] = limpiar_monto(res[j+1])
-                            # Captura Cuota 1 [cite: 2026-01-27]
+                                resultados_dict[mod]["Susc"] = limpiar_monto(res[j+1])
                             if "Cuota No" in res[j] and j+1 < len(res):
-                                valor_c1 = res[j+1]
-                                if "." in valor_c1 and len(valor_c1) > 4:
-                                    df_temp.at[fila, "Cuota 1"] = limpiar_monto(valor_c1)
+                                if "." in res[j+1] and len(res[j+1]) > 4:
+                                    resultados_dict[mod]["C1"] = limpiar_monto(res[j+1])
                                     break
             
-            st.subheader("📊 Precios Detectados")
-            st.table(df_temp)
-            st.success("✅ ¡Lectura terminada!")
+            # 3. CREAR Y MOSTRAR TABLA FINAL [cite: 2026-01-28]
+            df_final = pd.DataFrame([
+                {"Modelo": m, "Suscripción": resultados_dict[m]["Susc"], "Cuota 1": resultados_dict[m]["C1"]}
+                for m in modelos
+            ])
+            
+            st.subheader("📊 Datos de la foto actual:")
+            st.table(df_final)
+            st.success("✅ ¡Listo!")
         else:
-            st.error("No se detectó texto. Intentá con otra foto.")
-else:
-    st.info("Esperando planilla...")
+            st.error("No se pudo leer la imagen.")
+
+# Botón de limpieza absoluta por si acaso
+if st.sidebar.button("♻️ Reiniciar App por completo"):
+    st.session_state.clear()
+    st.rerun()

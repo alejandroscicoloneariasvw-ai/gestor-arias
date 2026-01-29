@@ -4,56 +4,29 @@ import pandas as pd
 
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 
-# --- CSS DE ALTA PRECISIÓN (FUERZA BRUTA) ---
+# --- LIMPIEZA DE ESPACIOS ---
 st.markdown("""
     <style>
-    /* 1. Eliminamos el cuadro gris 'fantasma' por completo */
-    .stCodeBlock {
-        background-color: transparent !important;
-        border: none !important;
-        width: 60px !important;
-        height: 60px !important;
-        padding: 0px !important;
-        margin: 0px !important;
-        overflow: visible !important;
-    }
-    
-    /* 2. Borramos el texto para que no estire nada */
-    .stCodeBlock pre { display: none !important; }
-    
-    /* 3. Convertimos el icono de las hojitas en un botón azul PRO */
-    .stCodeBlock button {
-        background-color: #007bff !important;
-        color: white !important;
-        border-radius: 12px !important;
-        width: 55px !important;
-        height: 55px !important;
-        right: 0px !important;
-        top: 0px !important;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.2) !important;
-        transform: scale(1.1);
-        opacity: 1 !important;
-    }
-    
-    /* 4. Efecto visual al pasar el mouse o tocarlo */
-    .stCodeBlock button:hover {
-        background-color: #0056b3 !important;
-        transform: scale(1.15);
-    }
-
-    /* 5. Limpieza general de la pantalla */
     .block-container { padding-top: 1rem !important; }
+    div.stButton > button {
+        width: 100%;
+        border-radius: 10px;
+        height: 3em;
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🚗 Arias Hnos. | Pro")
+st.title("🚗 Arias Hnos. | Ventas")
 
-# --- LÓGICA DE DATOS (Mantenemos tu sistema de carga) ---
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
+# --- CARGA (Sidebar) ---
 with st.sidebar:
     st.header("📥 Carga")
     modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
@@ -87,12 +60,11 @@ with st.sidebar:
                     except: continue
             st.session_state.lista_precios = temp
 
-# --- INTERFAZ DE USUARIO ---
+# --- INTERFAZ ---
 if st.session_state.lista_precios:
     mod_sel = st.selectbox("🎯 Elegí el auto:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
-    # Formateo de mensaje (igual al anterior)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     tp = "Plan 100% financiado" if d['Modelo'] == "VIRTUS" else "Plan 70/30"
@@ -112,18 +84,16 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- EL BOTÓN PROFESIONAL ---
-    st.write("---")
-    col_btn, col_info = st.columns([1, 5])
-    with col_btn:
-        st.markdown("**COPIAR:**")
-        st.code(msj, language=None) # Aquí aparece el botón azul de 2x2
+    # --- BOTÓN DE COPIADO ---
+    # Usamos un componente que genera un botón de "copiar" real
+    import st_copy_to_clipboard as stc # Necesitás instalar esta librería
     
-    with col_info:
-        st.write("Presioná el botón azul para copiar el presupuesto.")
-
     st.write("---")
-    with st.expander("📄 Ver presupuesto completo"):
+    st.write("📋 **Presupuesto Listo:**")
+    stc.st_copy_to_clipboard(msj, before_copy_label="📋 CLIC PARA COPIAR", after_copy_label="✅ ¡COPIADO!")
+    st.write("---")
+    
+    with st.expander("📄 Pegado manual / Revisar"):
         st.text_area("", msj, height=150)
 else:
-    st.info("Cargá la planilla a la izquierda.")
+    st.info("Cargá la planilla.")

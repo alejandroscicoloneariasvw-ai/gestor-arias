@@ -5,90 +5,95 @@ import numpy as np
 from PIL import Image
 import re
 
-st.set_page_config(page_title="Arias Hnos. | Lector Pro", layout="wide")
-st.title("🚗 Arias Hnos. | Sistema de Precios")
+st.set_page_config(page_title="Gestor Arias Hnos.", layout="wide")
 
-@st.cache_resource
-def get_reader():
-    return easyocr.Reader(['es'])
-
-reader = get_reader()
-
-def limpiar_precio_estricto(texto):
+# --- FUNCIONES DE LIMPIEZA ---
+def limpiar_monto_estricto(texto):
     num = re.sub(r'[^0-9]', '', texto)
-    if len(num) < 5 or len(num) > 8: return None # Filtra números basura o muy largos
-    if num.startswith(('5', '8', '3')) and len(num) >= 7: num = num[1:]
-    return f"${int(num):,}".replace(",", ".")
+    if not num: return None
+    valor = int(num)
+    # Filtro inteligente: Una cuota/suscripción no vale 20 millones ni 1000 pesos [cite: 2026-01-27]
+    if 50000 < valor < 3000000:
+        return f"${valor:,}".replace(",", ".")
+    # Caso especial: si el OCR leyó un 5 u 8 extra al principio [cite: 2026-01-27]
+    if valor > 3000000 and num.startswith(('5', '8', '3')):
+        nuevo_valor = int(num[1:])
+        if 50000 < nuevo_valor < 3000000:
+            return f"${nuevo_valor:,}".replace(",", ".")
+    return None
 
-archivo = st.file_uploader("Subí la planilla", type=['jpg', 'jpeg', 'png'])
+# --- INICIO DEL PROGRAMA --- [cite: 2026-01-27]
+st.title("🚗 Sistema Gestor Arias Hnos.")
 
-if archivo:
-    st.image(archivo, width=350, caption="Planilla detectada")
-    
-    with st.spinner('🤖 Extrayendo precios con precisión...'):
-        img = Image.open(archivo)
-        res = reader.readtext(np.array(img), detail=0)
-        
-        modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
-        datos_foto = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
-        
-        if res:
-            mod_foco = None
+opcion = st.radio("¿Qué desea hacer?", ["Usar datos guardados", "Cargar una planilla nueva"])
+
+if opcion == "Cargar una planilla nueva":
+    archivo = st.file_uploader("Subí la foto o PDF de la planilla", type=['jpg', 'png', 'jpeg'])
+    if archivo:
+        with st.spinner('🤖 Procesando nueva planilla...'):
+            reader = easyocr.Reader(['es'])
+            img = Image.open(archivo)
+            res = reader.readtext(np.array(img), detail=0)
+            
+            modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
+            datos = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
+            
+            mod_actual = None
             for i, texto in enumerate(res):
                 t_up = texto.upper()
-                
-                # Detectar Modelo
                 for mod in modelos:
-                    if mod in t_up: mod_foco = mod
+                    if mod in t_up: mod_actual = mod
                 
-                if mod_foco:
-                    # BUSCAR SUSCRIPCIÓN (Más rango para hojas de colores) [cite: 2026-01-27]
-                    if any(x in t_up for x in ["SUSC", "SCRIP", "SU5C"]):
-                        for k in range(1, 5):
-                            if i+k < len(res):
-                                p = limpiar_precio_estricto(res[i+k])
-                                if p:
-                                    datos_foto[mod_foco]["Susc"] = p
-                                    break
-                    
-                    # BUSCAR CUOTA 1 (Solo el primer valor después de 'Cuota 1') [cite: 2026-01-28]
-                    if "CUOTA" in t_up and "1" in t_up:
+                if mod_actual:
+                    # Buscamos Suscripción: el precio suele ser el primer número después [cite: 2026-01-27]
+                    if "SUSC" in t_up:
                         for k in range(1, 4):
                             if i+k < len(res):
-                                p = limpiar_precio_estricto(res[i+k])
+                                p = limpiar_monto_estricto(res[i+k])
+                                if p: 
+                                    datos[mod_actual]["Susc"] = p
+                                    break
+                    # Buscamos Cuota 1: ídem anterior [cite: 2026-01-28]
+                    if "CUOTA N" in t_up and "1" in t_up:
+                        for k in range(1, 4):
+                            if i+k < len(res):
+                                p = limpiar_monto_estricto(res[i+k])
                                 if p:
-                                    datos_foto[mod_foco]["C1"] = p
-                                    break # Corta enseguida para no agarrar la cuota 14-84
+                                    datos[mod_actual]["C1"] = p
+                                    break
             
-            df = pd.DataFrame([
-                {"Modelo": m, "Suscripción": datos_foto[m]["Susc"], "Cuota 1": datos_foto[m]["C1"]}
-                for m in modelos
-            ])
-            
-            st.subheader("📊 Tabla de Precios")
-            st.table(df)
+            # Guardamos en la "memoria" del programa [cite: 2026-01-27]
+            st.session_state.ultimos_datos = datos
+            st.success("✅ Planilla cargada y guardada.")
 
-            # --- GENERADOR DE MENSAJE WHATSAPP --- [cite: 2026-01-27, 2026-01-28]
-            st.divider()
-            st.subheader("📲 Generar Mensaje")
-            seleccion = st.selectbox("Elegí el modelo para enviar:", modelos)
-            
-            p_susc = datos_foto[seleccion]["Susc"]
-            p_c1 = datos_foto[seleccion]["C1"]
-            
-            mensaje = f"*Arias Hnos. | Detalle para el:*\n*Vehículo:* {seleccion}\n\n*Inversión Inicial:*\n✅ *Suscripción:* {p_susc}\n✅ *Cuota Nº 1:* {p_c1}"
-            
-            st.text_area("Copia este texto:", mensaje, height=150)
-            
-            # Botones de acción
-            col1, col2 = st.columns(2)
-            with col1:
-                st.button("📋 Copiar Mensaje (Usar Ctrl+C)")
-            with col2:
-                # Link directo a WhatsApp Web
-                link = f"https://wa.me/?text={mensaje.replace(' ', '%20').replace('\n', '%0A')}"
-                st.markdown(f"[📩 Enviar por WhatsApp]({link})")
+# --- MOSTRAR RESULTADOS ---
+if 'ultimos_datos' in st.session_state:
+    datos_mostrar = st.session_state.ultimos_datos
+    df = pd.DataFrame([
+        {"Modelo": m, "Suscripción": datos_mostrar[m]["Susc"], "Cuota 1": datos_mostrar[m]["C1"]}
+        for m in datos_mostrar
+    ])
+    
+    st.subheader("📊 Planilla en Memoria")
+    st.table(df)
 
-if st.sidebar.button("♻️ Reiniciar Sistema"):
-    st.cache_resource.clear()
+    # --- SECCIÓN WHATSAPP --- [cite: 2026-01-27, 2026-01-28]
+    st.divider()
+    sel = st.selectbox("Seleccioná un modelo para el mensaje:", list(datos_mostrar.keys()))
+    
+    txt_ws = f"*Arias Hnos. | Precios Actualizados*\n\n*Modelo:* {sel}\n✅ *Suscripción:* {datos_mostrar[sel]['Susc']}\n✅ *Cuota 1:* {datos_mostrar[sel]['C1']}"
+    
+    st.text_area("Mensaje listo para copiar:", txt_ws)
+    if st.button("📋 Copiar Mensaje"):
+        st.write("Copiá el texto de arriba manualmente (Seleccionar + Ctrl+C)")
+    
+    link = f"https://wa.me/?text={txt_ws.replace(' ', '%20').replace('\n', '%0A')}"
+    st.markdown(f"[📲 Enviar directo a WhatsApp]({link})")
+else:
+    if opcion == "Usar datos guardados":
+        st.info("No hay datos previos. Por favor, cargá una planilla nueva primero.")
+
+if st.sidebar.button("🗑️ Borrar Memoria"):
+    if 'ultimos_datos' in st.session_state:
+        del st.session_state.ultimos_datos
     st.rerun()

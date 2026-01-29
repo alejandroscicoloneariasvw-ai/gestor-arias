@@ -30,7 +30,6 @@ else:
     archivo = st.sidebar.file_uploader("Subí tu .txt", type=['txt'])
     if archivo:
         try:
-            # Intentamos leer el archivo con diferentes formatos para evitar el error de la captura
             contenido = archivo.getvalue().decode("utf-8")
         except UnicodeDecodeError:
             contenido = archivo.getvalue().decode("latin-1")
@@ -41,64 +40,47 @@ else:
             p = l.split(",")
             if len(p) >= 8:
                 try:
-                    temp.append({
-                        "Modelo": p[0].strip(), 
-                        "VM": int(float(p[1])), 
-                        "Susc": int(float(p[2])), 
-                        "C1": int(float(p[3])), 
-                        "Adh": int(float(p[4])), 
-                        "C2_13": int(float(p[5])), 
-                        "CFin": int(float(p[6])), 
-                        "CPura": int(float(p[7]))
-                    })
-                except ValueError:
-                    continue
+                    temp.append({"Modelo": p[0].strip(), "VM": int(float(p[1])), "Susc": int(float(p[2])), "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), "CFin": int(float(p[6])), "CPura": int(float(p[7]))})
+                except ValueError: continue
         if temp:
             st.session_state.lista_precios = temp
-            st.sidebar.success("✅ ¡Archivo cargado con éxito!")
+            st.sidebar.success("✅ ¡Archivo cargado!")
 
 # --- 2. SELECTOR Y CONSULTA ---
 if st.session_state.lista_precios:
     st.divider()
-    modelos_disponibles = [a['Modelo'] for a in st.session_state.lista_precios]
-    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo para el cliente:", modelos_disponibles)
+    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == modelo_sel)
 
     # CÁLCULOS
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # --- 3. FORMATO WHATSAPP ---
-    msj = (f"━━━━━━━━━━━━━━━━━━━\n"
-           f"🏛️  *ARIAS HNOS. - Presupuesto Oficial*\n"
-           f"📅  *Vigencia:* 05/12/2025\n"
-           f"━━━━━━━━━━━━━━━━━━━\n\n"
-           f"🚘  *Vehículo:* _{d['Modelo']}_\n\n"
-           f"💰  *Valor del Auto:* ${d['VM']:,}\n"
-           f"📝  *Tipo de Plan:* Plan 70/30\n"
-           f"⏳  *Plazo:* 84 Cuotas\n"
-           f"🎯  *(Pre-cancelables a Cuota Pura de ${d['CPura']:,})*\n\n"
-           f"━━━━━━━━━━━━━━━━━━━\n"
-           f"📑  *DETALLE DE INVERSIÓN INICIAL:*\n"
-           f"• Suscripción a Financiación: ${d['Susc']:,}\n"
-           f"• Cuota Nº 1: ${d['C1']:,}\n"
-           f"• *Costo Normal de Ingreso:* ${costo_normal:,}\n"
-           f"━━━━━━━━━━━━━━━━━━━\n\n"
-           f"🔥  *BENEFICIO EXCLUSIVO:*\n"
-           f"Abonando solo *${d['Adh']:,}*, ya cubrís el **INGRESO COMPLETO** (Cuota 1 + Suscripción).\n\n"
-           f"🎁  *AHORRO DIRECTO HOY:  ${ahorro:,}*\n\n"
-           f"━━━━━━━━━━━━━━━━━━━\n"
-           f"📉  *ESQUEMA DE CUOTAS POSTERIORES:*\n"
-           f"✅  *Cuotas 2 a 13:* ${d['C2_13']:,}\n"
-           f"✅  *Cuotas 14 a 84:* ${d['CFin']:,}\n"
-           f"✅  *Cuota Pura:* ${d['CPura']:,}\n\n"
-           f"⚠️  _Los cupos con este beneficio son limitados por stock de planilla._\n\n"
-           f"Si quieres avanzar, mándame foto de tu **DNI (frente y dorso)** y te explico cómo asegurar este beneficio. 📲").replace(",", ".")
+    # --- 3. FORMATO WHATSAPP CON ADJUDICACIÓN Y EMOJIS ---
+    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *05/12/2025*, aquí tienes el detalle para el:\n\n"
+           f"🚘 *Vehículo:* {d['Modelo']}\n"
+           f"💰 *Valor del Auto:* ${d['VM']:,}\n"
+           f"📍 *Tipo de Plan:* Plan 70/30\n"
+           f"⌛ *Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura de *${d['CPura']:,}*)\n\n"
+           f"🤝 *ADJUDICACIÓN PACTADA EN CUOTA:* 8, 12 y 24 ✅\n\n"
+           f"✳️ *Inversión Inicial:*\n"
+           f"👉 *Suscripción:* ${d['Susc']:,}\n"
+           f"👉 *Cuota Nº 1:* ${d['C1']:,}\n"
+           f"👉 *Costo Normal:* ${costo_normal:,} (Ver Beneficio 👇)\n\n"
+           f"-----------------------------------------------------------\n"
+           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${d['Adh']:,}*, ya cubrís el **INGRESO COMPLETO**.\n\n"
+           f"💰 *AHORRO DIRECTO HOY: ${ahorro:,}* 🎁\n"
+           f"-----------------------------------------------------------\n\n"
+           f"✳️ *Cuotas posteriores:*\n"
+           f"✅ *Cuotas 2 a 13:* ${d['C2_13']:,}\n"
+           f"✅ *Cuotas 14 a 84:* ${d['CFin']:,}\n"
+           f"✅ *Cuota Pura:* ${d['CPura']:,}\n\n"
+           f"Los cupos con este beneficio son limitados. Si quieres avanzar mándame foto de DNI frente y dorso y reservamos tu unidad. 🎈🎈").replace(",", ".")
 
-    st.subheader("📱 Vista Previa del Presupuesto")
+    st.subheader("📱 Vista Previa del Mensaje")
     st.info(msj)
     
     link_wa = f"https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')}"
-    st.markdown(f"### [🚀 ENVIAR POR WHATSAPP]({link_wa})")
+    st.markdown(f"### [🚀 ENVIAR POR WHATSAPP CON EMOJIS]({link_wa})")
 else:
     st.info("👋 Alejandro, primero cargá los datos desde el panel lateral.")

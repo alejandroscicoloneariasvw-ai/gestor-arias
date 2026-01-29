@@ -2,31 +2,40 @@ import streamlit as st
 from datetime import datetime
 import pandas as pd
 
-st.set_page_config(page_title="Arias Hnos.", layout="wide")
+st.set_page_config(page_title="Arias Hnos. | Pro", layout="wide")
 
-# --- LIMPIEZA DE ESPACIOS ---
+# --- CSS PARA LIMPIAR LA PANTALLA ---
 st.markdown("""
     <style>
-    .block-container { padding-top: 1rem !important; }
+    /* Eliminamos espacios blancos arriba para que entre todo en el celu */
+    .block-container { padding-top: 1.5rem !important; }
+    
+    /* Estilo del botón azul profesional */
     div.stButton > button {
         width: 100%;
-        border-radius: 10px;
-        height: 3em;
         background-color: #007bff;
         color: white;
         font-weight: bold;
+        border-radius: 10px;
+        height: 3.5em;
+        border: none;
+        box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    div.stButton > button:hover {
+        background-color: #0056b3;
+        color: white;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🚗 Arias Hnos. | Ventas")
+st.title("🚗 Arias Hnos. | Gestión")
 
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# --- CARGA (Sidebar) ---
+# --- CARGA DE DATOS (Sidebar) ---
 with st.sidebar:
     st.header("📥 Carga")
     modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
@@ -60,9 +69,9 @@ with st.sidebar:
                     except: continue
             st.session_state.lista_precios = temp
 
-# --- INTERFAZ ---
+# --- PROCESO Y VISTA ---
 if st.session_state.lista_precios:
-    mod_sel = st.selectbox("🎯 Elegí el auto:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🎯 Elegí el vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
@@ -84,16 +93,13 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- BOTÓN DE COPIADO ---
-    # Usamos un componente que genera un botón de "copiar" real
-    import st_copy_to_clipboard as stc # Necesitás instalar esta librería
-    
     st.write("---")
-    st.write("📋 **Presupuesto Listo:**")
-    stc.st_copy_to_clipboard(msj, before_copy_label="📋 CLIC PARA COPIAR", after_copy_label="✅ ¡COPIADO!")
+    # Este botón hace que el presupuesto aparezca abajo listo para copiar a mano,
+    # evitando que el cuadro gris "estire" la pantalla.
+    if st.button("📋 GENERAR PRESUPUESTO"):
+        st.success("Presupuesto generado abajo. Mantené presionado para copiar.")
+        st.text_area("Texto para WhatsApp:", msj, height=350)
     st.write("---")
     
-    with st.expander("📄 Pegado manual / Revisar"):
-        st.text_area("", msj, height=150)
 else:
-    st.info("Cargá la planilla.")
+    st.info("Cargá la planilla para empezar.")

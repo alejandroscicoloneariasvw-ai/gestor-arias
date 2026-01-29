@@ -4,31 +4,31 @@ import pandas as pd
 
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 
-# --- CSS: REDUCCIÓN TOTAL Y CUADRITO 2x2 ---
+# --- CSS: REDUCCIÓN TOTAL PARA EL CUADRITO 2x2 ---
 st.markdown("""
     <style>
-    /* Eliminamos espacios sobrantes arriba */
-    .block-container { padding-top: 1rem !important; }
-    
-    /* Forzamos el cuadradito azul a ser pequeño (aprox 2x2 cm) */
+    /* Eliminamos el fondo gris gigante y forzamos el tamaño */
     .stCodeBlock {
-        width: 75px !important;
-        height: 75px !important;
+        width: 65px !important; /* Ancho fijo para que no se estire */
+        height: 65px !important; /* Alto fijo */
+        background-color: transparent !important;
+        border: 2px solid #007bff !important;
+        border-radius: 8px !important;
+        padding: 0px !important;
         overflow: hidden !important;
-        border: 3px solid #007bff !important;
-        border-radius: 10px !important;
-        margin-bottom: 0px !important;
     }
-    /* Escondemos el texto para que no estire el cuadro */
-    .stCodeBlock pre { visibility: hidden !important; }
+    /* Escondemos el texto para que no empuje el cuadro */
+    .stCodeBlock pre { display: none !important; }
     
-    /* Achicamos el texto de las instrucciones */
-    .instruccion-mini {
-        font-size: 12px;
-        color: #007bff;
-        font-weight: bold;
-        margin-bottom: 2px;
+    /* Movemos el botón de copiar al centro del cuadradito */
+    .stCodeBlock button {
+        right: 15px !important;
+        top: 15px !important;
+        transform: scale(1.5); /* Lo agrandamos un poquito para que sea fácil tocarlo */
     }
+    
+    /* Quitamos espacios innecesarios arriba de la página */
+    .block-container { padding-top: 1rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -43,7 +43,6 @@ if 'fecha_vigencia' not in st.session_state:
 with st.sidebar:
     st.header("📥 Carga")
     modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
-    # ... (mismo código de carga anterior para mantener funcionalidad)
     if modo == "Manual":
         with st.form("f"):
             st.session_state.fecha_vigencia = st.text_input("Fecha:", st.session_state.fecha_vigencia)
@@ -76,7 +75,7 @@ with st.sidebar:
 
 # --- 2. SELECTOR Y PROCESO ---
 if st.session_state.lista_precios:
-    mod_sel = st.selectbox("🔍 Seleccionar Auto:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🔍 Seleccioná el vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
@@ -98,10 +97,12 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- ÁREA DE COPIADO ULTRA PEQUEÑA ---
-    st.markdown('<p class="instruccion-mini">COPIAR AQUÍ:</p>', unsafe_allow_html=True)
-    st.code(msj, language=None) 
-
+    # --- EL BOTONCITO 2X2 ---
+    col1, col2 = st.columns([1, 8])
+    with col1:
+        st.write("📋 **COPIAR:**")
+        st.code(msj, language=None) # Cuadradito 2x2 real
+    
     st.divider()
     with st.expander("📄 Ver texto / Pegado manual"):
         st.text_area("", msj, height=150)

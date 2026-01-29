@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 
-# --- LÓGICA DE DATOS (Sidebar) ---
+# --- LÓGICA DE DATOS ---
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
@@ -43,7 +43,7 @@ with st.sidebar:
                     except: continue
             st.session_state.lista_precios = temp
 
-# --- PROCESO Y VISTA ---
+# --- INTERFAZ ---
 if st.session_state.lista_precios:
     st.title("🚗 Arias Hnos.")
     mod_sel = st.selectbox("🎯 Vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
@@ -51,7 +51,15 @@ if st.session_state.lista_precios:
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
-    tp = "Plan 100% financiado" if d['Modelo'] == "VIRTUS" else "Plan 70/30"
+    
+    # --- LÓGICA DE PLANES ACTUALIZADA ---
+    if d['Modelo'] == "VIRTUS":
+        tp = "Plan 100% financiado"
+    elif d['Modelo'] in ["AMAROK", "TAOS"]:
+        tp = "Plan 60/40"
+    else:
+        tp = "Plan 70/30"
+        
     adj = f"🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24\\n\\n" if d['Modelo'] in ["TERA", "NIVUS", "T-CROSS"] else ""
 
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
@@ -68,19 +76,16 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\\n\\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- EL BOTÓN MÁGICO (HTML + JS) ---
+    # --- EL BOTÓN MÁGICO ---
     st.write("---")
-    st.write("📋 **Presupuesto listo:**")
-    
     html_button = f"""
     <button onclick="copyToClipboard()" style="
         background-color: #007bff;
         color: white;
         border: none;
-        padding: 15px 25px;
+        padding: 15px;
         border-radius: 10px;
         font-weight: bold;
-        cursor: pointer;
         width: 100%;
         font-size: 16px;
     ">📋 COPIAR PARA WHATSAPP</button>
@@ -94,14 +99,14 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Presupuesto Copiado! Ya podés pegarlo en el chat.');
+        alert('✅ ¡Copiado con éxito!');
     }}
     </script>
     """
-    st.components.v1.html(html_button, height=100)
-    
+    st.components.v1.html(html_button, height=70)
     st.write("---")
-    with st.expander("🔍 Ver texto antes de enviar"):
+    
+    with st.expander("🔍 Ver texto"):
         st.text(msj.replace("\\n", "\n"))
 else:
-    st.info("Cargá la planilla para empezar.")
+    st.info("Cargá la planilla.")

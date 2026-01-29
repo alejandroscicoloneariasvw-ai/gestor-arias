@@ -8,73 +8,83 @@ import re
 st.set_page_config(page_title="Arias Hnos. | Lector Pro", layout="wide")
 st.title("🚗 Arias Hnos. | Sistema de Precios")
 
+# Cargamos el lector una sola vez para que sea rápido
 @st.cache_resource
 def get_reader():
     return easyocr.Reader(['es'])
 
 reader = get_reader()
 
-def limpiar_precio(texto):
-    # Solo dejamos números y puntos
-    num = re.sub(r'[^0-9.]', '', texto)
-    # Un precio real de Arias Hnos tiene al menos 5 dígitos (ej: 490.000)
-    # Si tiene 2 o 3 dígitos, es un error (ej: 84 meses) [cite: 2026-01-27]
-    if len(num.replace('.', '')) < 5:
-        return None
-    # Quitamos el 5 u 8 rebelde del principio si el número es muy largo [cite: 2026-01-27]
-    if len(num.replace('.', '')) >= 7 and num.startswith(('5', '8', '3')):
+def limpiar_precio_real(texto):
+    num = re.sub(r'[^0-9]', '', texto)
+    # Si el número es muy corto, no es un precio (ej: "84" meses) [cite: 2026-01-27]
+    if len(num) < 5: return None
+    # Quitamos el 5, 8 o 3 inicial que suele ser error del signo $ [cite: 2026-01-27]
+    if len(num) >= 7 and num.startswith(('5', '8', '3')):
         num = num[1:]
-    return f"${num}"
+    
+    # Formateamos con puntos para que se lea bien
+    return f"${int(num):,}".replace(",", ".")
 
-# --- INTERFAZ ---
+# --- LA CLAVE: El uploader no guarda estados viejos ---
 archivo = st.file_uploader("Subí la planilla", type=['jpg', 'jpeg', 'png'])
 
 if archivo:
-    img = Image.open(archivo)
-    st.image(img, width=400)
+    # Mostramos la imagen actual
+    st.image(archivo, width=350, caption="Procesando esta imagen ahora...")
     
-    with st.spinner('🤖 Procesando datos...'):
+    with st.spinner('🤖 Leyendo datos frescos...'):
+        # 1. Forzamos la lectura limpia
+        img = Image.open(archivo)
         res = reader.readtext(np.array(img), detail=0)
         
-        # Diccionario para guardar lo que encontremos
+        # 2. Creamos la estructura de datos VACÍA cada vez [cite: 2026-01-27]
         modelos = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
-        datos = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
+        datos_foto = {m: {"Susc": "$0", "C1": "$0"} for m in modelos}
         
-        modelo_actual = None
-        
-        for i, texto in enumerate(res):
-            t_up = texto.upper()
-            
-            # 1. Detectar el Modelo
-            for mod in modelos:
-                if mod in t_up:
-                    modelo_actual = mod
-            
-            # 2. Si tenemos un modelo, buscamos sus precios debajo [cite: 2026-01-27]
-            if modelo_actual:
-                if "SUSC" in t_up and i+1 < len(res):
-                    p = limpiar_precio(res[i+1])
-                    if p: datos[modelo_actual]["Susc"] = p
+        if res:
+            modelo_actual = None
+            for i, texto in enumerate(res):
+                t_up = texto.upper()
                 
-                if "CUOTA N" in t_up and i+1 < len(res):
-                    p = limpiar_precio(res[i+1])
-                    if p: datos[modelo_actual]["C1"] = p
+                # Identificamos el auto
+                for mod in modelos:
+                    if mod in t_up:
+                        modelo_actual = mod
+                
+                if modelo_actual:
+                    # Buscamos Suscripción
+                    if any(x in t_up for x in ["SUSC", "SCRIP", "SU5C"]):
+                        for k in range(1, 4): # Buscamos en los 3 renglones siguientes
+                            if i+k < len(res):
+                                p = limpiar_precio_real(res[i+k])
+                                if p: 
+                                    datos_actual = p
+                                    datos_foto[modelo_actual]["Susc"] = p
+                                    break
+                    
+                    # Buscamos Cuota 1
+                    if any(x in t_up for x in ["CUOTA N", "CUOTAN", "CU0TA"]):
+                        for k in range(1, 4):
+                            if i+k < len(res):
+                                p = limpiar_precio_real(res[i+k])
+                                if p:
+                                    datos_foto[modelo_actual]["C1"] = p
+                                    break
 
-        # Crear tabla
-        df = pd.DataFrame([
-            {"Modelo": m, "Suscripción": datos[m]["Susc"], "Cuota 1": datos[m]["C1"]}
-            for m in modelos
-        ])
-        
-        st.subheader("📊 Tabla de la Foto Actual")
-        st.table(df)
+            # 3. Mostramos la tabla RECIÉN CREADA [cite: 2026-01-28]
+            df_final = pd.DataFrame([
+                {"Modelo": m, "Suscripción": datos_foto[m]["Susc"], "Cuota 1": datos_foto[m]["C1"]}
+                for m in modelos
+            ])
+            
+            st.subheader("📊 Precios de la planilla cargada:")
+            st.table(df_final)
+            st.success("✅ ¡Actualizado correctamente!")
+        else:
+            st.warning("No se detectó texto. Intentá de nuevo.")
 
-# --- BOTÓN DE CONTROL --- [cite: 2026-01-27]
-if st.sidebar.button("🗑️ LIMPIAR TODO"):
-    st.cache_data.clear()
+# Botón de reset total por si el servidor se tilda
+if st.sidebar.button("♻️ Reiniciar Sistema"):
+    st.cache_resource.clear()
     st.rerun()
-
-# --- DEBUG: Para que Alejandro vea qué lee la IA si falla ---
-if st.checkbox("🔍 Ver qué está leyendo la IA (Modo Técnico)"):
-    if archivo:
-        st.write(res)

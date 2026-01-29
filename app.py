@@ -52,7 +52,7 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # FORMATO EXACTO AL EJEMPLO
+    # FORMATO LIMPIO
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *05/12/2025*, aquí tienes el detalle de los costos para el:\n\n"
            f"*Vehículo:* {d['Modelo']}\n\n"
            f"*Valor del Auto:* ${d['VM']:,}\n\n"
@@ -75,19 +75,17 @@ if st.session_state.lista_precios:
            f"Si queda alguna duda a disposición. Si quieres avanzar mándame por este medio foto de DNI de adelante y de atrás "
            f"y te comento como realizaremos este pago Beneficio. 🎈🎈").replace(",", ".")
 
-    st.subheader("📝 Mensaje Generado")
+    st.subheader("📋 Presupuesto para Copiar")
     
-    # --- BOTÓN DE COPIAR ---
-    if st.button("📋 COPIAR AUTOMÁTICAMENTE"):
-        # Usamos st.code para que sea fácil de copiar con un click en la esquina si el script falla
-        st.code(msj, language=None)
-        st.success("¡Mensaje listo! Si no se copió solo, hacé clic en el ícono de copiar arriba a la derecha del recuadro gris.")
+    # --- MÉTODO DE COPIADO 1 (El más seguro) ---
+    st.write("1. Hacé clic en el ícono de copiar (arriba a la derecha del cuadro):")
+    st.code(msj, language=None)
     
     st.divider()
     
-    # --- CUADRO MANUAL (EL QUE PEDISTE DEJAR) ---
-    st.write("👇 **Carga Manual (Copiá y pegá de acá si el botón no funciona):**")
-    st.text_area("Seleccioná todo este texto:", msj, height=300)
+    # --- MÉTODO DE COPIADO 2 (Manual) ---
+    st.write("2. O seleccioná y copiá manualmente de acá abajo 👇:")
+    st.text_area("Copia manual:", msj, height=250)
 
 else:
     st.info("👋 Alejandro, cargá los datos a la izquierda para empezar.")

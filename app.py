@@ -5,15 +5,28 @@ import pandas as pd
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 st.title("🚗 Arias Hnos. | Presupuestos")
 
+# --- CSS PARA ACHICAR EL CUADRO A LA FUERZA ---
+st.markdown("""
+    <style>
+    .stCodeBlock {
+        height: 120px !important;
+        overflow-y: auto !important;
+    }
+    code {
+        font-size: 11px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# --- 1. CARGA DE DATOS ---
+# --- 1. CARGA DE DATOS (Sidebar) ---
 with st.sidebar:
     st.header("📥 Carga")
-    modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
+    modo = st.sidebar.radio("Método:", ["Manual", "Archivo (.txt)"])
     if modo == "Manual":
         with st.form("f"):
             st.session_state.fecha_vigencia = st.text_input("Fecha:", st.session_state.fecha_vigencia)
@@ -68,12 +81,10 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- EL BOTÓN "MÁGICO" ---
-    if st.button("📋 CLIC AQUÍ PARA COPIAR PRESUPUESTO"):
-        st.write(f'<script>navigator.clipboard.writeText(`{msj}`);</script>', unsafe_allow_html=True)
-        st.success("✅ ¡Copiado! Ya podés pegarlo en WhatsApp.")
+    # --- EL "ENGAÑO": Cuadro de copiado forzado a ser chiquito ---
+    st.write("📋 **Copiá desde este cuadrito (Clic arriba a la derecha):**")
+    st.code(msj, language=None)
     
-    with st.expander("Ver texto"):
-        st.text(msj)
+    st.success("Recordá: Seleccioná el auto, hacé clic en el ícono de las 'hojitas' en el cuadro gris y pegá en WhatsApp.")
 else:
     st.info("Cargá datos a la izquierda.")

@@ -4,35 +4,39 @@ import pandas as pd
 
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 
-# --- CSS: REDUCCIÓN TOTAL PARA EL CUADRITO 2x2 ---
+# --- CSS PROFESIONAL: ELIMINACIÓN DE CUADROS SOBRANTES ---
 st.markdown("""
     <style>
-    /* Eliminamos el fondo gris gigante y forzamos el tamaño */
+    /* 1. Hacemos que el bloque de código sea un cuadradito invisible de fondo */
     .stCodeBlock {
-        width: 65px !important; /* Ancho fijo para que no se estire */
-        height: 65px !important; /* Alto fijo */
+        width: 55px !important;
+        height: 55px !important;
         background-color: transparent !important;
-        border: 2px solid #007bff !important;
-        border-radius: 8px !important;
+        border: none !important;
         padding: 0px !important;
-        overflow: hidden !important;
+        margin-top: -10px !important;
     }
-    /* Escondemos el texto para que no empuje el cuadro */
+    /* 2. Escondemos el texto para que no ocupe lugar ni se vea */
     .stCodeBlock pre { display: none !important; }
     
-    /* Movemos el botón de copiar al centro del cuadradito */
+    /* 3. Estilizamos el botón de las hojitas para que se vea pro */
     .stCodeBlock button {
-        right: 15px !important;
-        top: 15px !important;
-        transform: scale(1.5); /* Lo agrandamos un poquito para que sea fácil tocarlo */
+        background-color: #007bff !important;
+        color: white !important;
+        border-radius: 8px !important;
+        right: 0px !important;
+        top: 0px !important;
+        width: 50px !important;
+        height: 50px !important;
+        transform: scale(1.2); /* Un toque más grande para el pulgar */
+        box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
     }
-    
-    /* Quitamos espacios innecesarios arriba de la página */
-    .block-container { padding-top: 1rem !important; }
+    /* 4. Quitamos el espacio gigante de arriba */
+    .block-container { padding-top: 1.5rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🚗 Arias Hnos.")
+st.title("🚗 Arias Hnos. | Gestión de Ventas")
 
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
@@ -41,7 +45,8 @@ if 'fecha_vigencia' not in st.session_state:
 
 # --- 1. CARGA (Sidebar) ---
 with st.sidebar:
-    st.header("📥 Carga")
+    st.header("📥 Datos")
+    # ... (mantenemos tu lógica de carga de archivo que ya funciona perfecto)
     modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
     if modo == "Manual":
         with st.form("f"):
@@ -75,9 +80,11 @@ with st.sidebar:
 
 # --- 2. SELECTOR Y PROCESO ---
 if st.session_state.lista_precios:
-    mod_sel = st.selectbox("🔍 Seleccioná el vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
+    # Selector de auto más compacto
+    mod_sel = st.selectbox("🎯 Seleccionar Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
+    # Lógica de precios (idéntica a la anterior para no romper nada)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     tp = "Plan 100% financiado" if d['Modelo'] == "VIRTUS" else "Plan 70/30"
@@ -97,14 +104,20 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- EL BOTONCITO 2X2 ---
-    col1, col2 = st.columns([1, 8])
-    with col1:
-        st.write("📋 **COPIAR:**")
-        st.code(msj, language=None) # Cuadradito 2x2 real
+    # --- DISEÑO FINAL PROFESIONAL ---
+    st.write("---")
+    c1, c2 = st.columns([1, 6])
+    with c1:
+        st.write("💾 **COPIAR:**")
+        # El "engaño": solo verás el botón de copiado dentro de un área mini
+        st.code(msj, language=None)
     
-    st.divider()
-    with st.expander("📄 Ver texto / Pegado manual"):
+    with c2:
+        st.write("Presioná el botón azul para copiar el presupuesto completo.")
+
+    st.write("---")
+    # Backup por si falla el botón
+    with st.expander("📄 Ver presupuesto completo / Pegado manual"):
         st.text_area("", msj, height=150)
 else:
-    st.info("Cargá datos a la izquierda.")
+    st.info("Cargá la planilla para empezar.")

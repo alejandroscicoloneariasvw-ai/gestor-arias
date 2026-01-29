@@ -31,7 +31,7 @@ else:
     if archivo:
         try:
             contenido = archivo.getvalue().decode("utf-8")
-        except UnicodeDecodeError:
+        except:
             contenido = archivo.getvalue().decode("latin-1")
         lineas = contenido.split("\n")
         temp = []
@@ -40,7 +40,7 @@ else:
             if len(p) >= 8:
                 try:
                     temp.append({"Modelo": p[0].strip(), "VM": int(float(p[1])), "Susc": int(float(p[2])), "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), "CFin": int(float(p[6])), "CPura": int(float(p[7]))})
-                except ValueError: continue
+                except: continue
         st.session_state.lista_precios = temp
 
 # --- 2. SELECTOR Y CONSULTA ---
@@ -52,7 +52,7 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # --- 3. FORMATO EXACTO AL EJEMPLO ---
+    # FORMATO EXACTO AL EJEMPLO
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *05/12/2025*, aquí tienes el detalle de los costos para el:\n\n"
            f"*Vehículo:* {d['Modelo']}\n\n"
            f"*Valor del Auto:* ${d['VM']:,}\n\n"
@@ -75,7 +75,19 @@ if st.session_state.lista_precios:
            f"Si queda alguna duda a disposición. Si quieres avanzar mándame por este medio foto de DNI de adelante y de atrás "
            f"y te comento como realizaremos este pago Beneficio. 🎈🎈").replace(",", ".")
 
-    st.subheader("📝 Mensaje para el Cliente")
-    st.text_area("Copiá el texto aquí abajo 👇", msj, height=350)
+    st.subheader("📝 Mensaje Generado")
     
-    st.info("💡 **Tip:** Seleccioná todo el texto del cuadro de arriba, copialo y pegalo directamente en el chat de WhatsApp del cliente.")
+    # --- BOTÓN DE COPIAR ---
+    if st.button("📋 COPIAR AUTOMÁTICAMENTE"):
+        # Usamos st.code para que sea fácil de copiar con un click en la esquina si el script falla
+        st.code(msj, language=None)
+        st.success("¡Mensaje listo! Si no se copió solo, hacé clic en el ícono de copiar arriba a la derecha del recuadro gris.")
+    
+    st.divider()
+    
+    # --- CUADRO MANUAL (EL QUE PEDISTE DEJAR) ---
+    st.write("👇 **Carga Manual (Copiá y pegá de acá si el botón no funciona):**")
+    st.text_area("Seleccioná todo este texto:", msj, height=300)
+
+else:
+    st.info("👋 Alejandro, cargá los datos a la izquierda para empezar.")

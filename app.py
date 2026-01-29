@@ -1,5 +1,5 @@
 import streamlit as st
-import pd as pd
+import pandas as pd
 import easyocr
 import numpy as np
 from PIL import Image
@@ -20,8 +20,8 @@ def limpiar_monto(texto):
         num = num[1:]
     return f"${num}" if num else "$0"
 
-# 🔄 BOTÓN DE REINICIO TOTAL AL PRINCIPIO
-if st.sidebar.button("🗑️ BORRAR TODO Y EMPEZAR DE NUEVO"):
+# Botón de reinicio en la barra lateral
+if st.sidebar.button("🗑️ BORRAR TODO Y EMPEZAR"):
     st.cache_data.clear()
     st.session_state.clear()
     st.rerun()
@@ -29,14 +29,13 @@ if st.sidebar.button("🗑️ BORRAR TODO Y EMPEZAR DE NUEVO"):
 archivo = st.file_uploader("Subí la planilla de Arias Hnos.", type=['jpg', 'jpeg', 'png'])
 
 if archivo:
-    st.image(archivo, width=250, caption="Archivo actual")
+    st.image(archivo, width=250, caption="Planilla para procesar")
     
-    # Solo procesamos si no lo hemos hecho ya para este archivo específico
     with st.spinner('🤖 Procesando planilla... por favor esperá...'):
         img = Image.open(archivo)
         res = reader.readtext(np.array(img), detail=0)
         
-        # Creamos una tabla nueva CADA VEZ que subís algo [cite: 2026-01-27]
+        # Estructura de la tabla [cite: 2026-01-27]
         datos_nuevos = {
             "Modelo": ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"],
             "Suscripción": ["$0"]*6,
@@ -51,19 +50,20 @@ if archivo:
                 for mod, fila in modelos_map.items():
                     if mod in t_up:
                         for j in range(i+1, min(i+20, len(res))):
+                            # Captura Suscripción [cite: 2026-01-27]
                             if "Suscrip" in res[j] and j+1 < len(res):
                                 df_temp.at[fila, "Suscripción"] = limpiar_monto(res[j+1])
+                            # Captura Cuota 1 [cite: 2026-01-27]
                             if "Cuota No" in res[j] and j+1 < len(res):
                                 valor_c1 = res[j+1]
                                 if "." in valor_c1 and len(valor_c1) > 4:
                                     df_temp.at[fila, "Cuota 1"] = limpiar_monto(valor_c1)
                                     break
             
-            # RECIÉN AQUÍ MOSTRAMOS LA TABLA [cite: 2026-01-28]
-            st.subheader("📊 Precios Actualizados")
+            st.subheader("📊 Precios Detectados")
             st.table(df_temp)
-            st.success("✅ ¡Lectura completada con éxito!")
+            st.success("✅ ¡Lectura terminada!")
         else:
-            st.error("No se pudo leer el texto. Probá con otra foto más nítida.")
+            st.error("No se detectó texto. Intentá con otra foto.")
 else:
-    st.info("Esperando que subas una planilla...")
+    st.info("Esperando planilla...")

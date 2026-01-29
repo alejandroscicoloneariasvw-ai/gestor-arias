@@ -3,40 +3,39 @@ from datetime import datetime
 import pandas as pd
 
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
-st.title("🚗 Arias Hnos. | Presupuestos")
 
-# --- CSS PARA EL MINIBOTÓN DE 2CM X 2CM ---
+# --- CSS: EL CUADRITO DE 2x2 CM ---
 st.markdown("""
     <style>
-    /* Forzamos el bloque de código a ser un cuadradito pequeño */
+    /* Creamos el cuadradito azul de 2x2 cm aprox */
     .stCodeBlock {
-        width: 80px !important;
-        height: 80px !important;
+        width: 70px !important;
+        height: 70px !important;
         overflow: hidden !important;
-        border: 2px solid #007bff !important;
-        border-radius: 10px !important;
+        border: 3px solid #007bff !important;
+        border-radius: 12px !important;
+        background-color: #f0f2f6 !important;
     }
-    .stCodeBlock div {
-        height: 80px !important;
-    }
-    /* Ocultamos el texto dentro del cuadradito para que solo se vea el botón */
+    /* Escondemos el texto para que solo quede el icono de copiar */
     .stCodeBlock pre {
         visibility: hidden !important;
     }
-    .instruccion {
-        color: #007bff;
-        font-weight: bold;
-        font-size: 14px;
+    /* Ajustamos el título para que no ocupe tanto espacio */
+    h1 {
+        font-size: 24px !important;
+        padding-top: 0px !important;
     }
     </style>
 """, unsafe_allow_html=True)
+
+st.title("🚗 Arias Hnos. | Ventas")
 
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# --- 1. CARGA DE DATOS (Sidebar) ---
+# --- 1. CARGA (Sidebar) ---
 with st.sidebar:
     st.header("📥 Carga")
     modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
@@ -72,7 +71,7 @@ with st.sidebar:
 
 # --- 2. SELECTOR Y MENSAJE ---
 if st.session_state.lista_precios:
-    mod_sel = st.selectbox("🚗 Seleccioná el vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🔍 Vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
@@ -94,17 +93,18 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- DISEÑO ULTRA COMPACTO ---
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.markdown('<p class="instruccion">COPIAR:</p>', unsafe_allow_html=True)
-        st.code(msj, language=None) # El CSS lo convierte en un cuadradito
+    # --- DISEÑO MINIMALISTA ---
+    col_btn, col_txt = st.columns([1, 4])
+    with col_btn:
+        st.write("**COPIAR:**")
+        st.code(msj, language=None) # Aquí aparece el cuadradito de 2x2 cm
     
-    with col2:
-        st.write("⬅️ Tocá el icono azul para copiar todo el presupuesto.")
+    with col_txt:
+        st.info("Hacé clic en el icono de las hojitas dentro del cuadro azul.")
 
     st.divider()
-    with st.expander("🔍 Ver presupuesto / Pegado manual"):
-        st.text_area("Texto para WhatsApp:", msj, height=200)
+    # Pegado manual bien escondido abajo
+    with st.expander("📄 Ver presupuesto / Pegado manual"):
+        st.text_area("", msj, height=150)
 else:
     st.info("Cargá datos a la izquierda.")

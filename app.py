@@ -18,21 +18,32 @@ with st.sidebar:
         mod_a_editar = st.selectbox("Modelo a modificar:", ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"])
         datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == mod_a_editar), None)
         
+        # Determinar valor por defecto de adjudicación si no existe
+        adj_defecto = "8, 12 y 24" if mod_a_editar in ["TERA", "NIVUS", "T-CROSS"] else ""
+        if datos_previos and 'Adj_Pactada' in datos_previos:
+            adj_defecto = datos_previos['Adj_Pactada']
+
         with st.form("f_editar"):
             st.write(f"Editando: **{mod_a_editar}**")
             
-            # --- AGREGAMOS 'format="%d"' PARA QUE NO USE COMAS Y SE VEA LIMPIO ---
-            # Streamlit no permite puntos dinámicos en la entrada, pero podemos usar step=1000
-            vm = st.number_input("Valor Móvil", value=datos_previos['VM'] if datos_previos else 0, step=1000)
-            su = st.number_input("Suscripción", value=datos_previos['Susc'] if datos_previos else 0, step=1000)
-            c1 = st.number_input("Cuota 1", value=datos_previos['C1'] if datos_previos else 0, step=1000)
-            ad = st.number_input("Paga con Beneficio", value=datos_previos['Adh'] if datos_previos else 0, step=1000)
-            c2 = st.number_input("Cuota 2-13", value=datos_previos['C2_13'] if datos_previos else 0, step=1000)
-            cf = st.number_input("Cuota Final", value=datos_previos['CFin'] if datos_previos else 0, step=1000)
-            cp = st.number_input("Cuota Pura", value=datos_previos['CPura'] if datos_previos else 0, step=1000)
+            # format="%.0f" y step=1 ayudan a que Streamlit no ponga decimales raros
+            vm = st.number_input("Valor Móvil", value=datos_previos['VM'] if datos_previos else 0, step=1)
+            su = st.number_input("Suscripción", value=datos_previos['Susc'] if datos_previos else 0, step=1)
+            c1 = st.number_input("Cuota 1", value=datos_previos['C1'] if datos_previos else 0, step=1)
+            ad = st.number_input("Paga con Beneficio", value=datos_previos['Adh'] if datos_previos else 0, step=1)
+            c2 = st.number_input("Cuota 2-13", value=datos_previos['C2_13'] if datos_previos else 0, step=1)
+            cf = st.number_input("Cuota Final", value=datos_previos['CFin'] if datos_previos else 0, step=1)
+            cp = st.number_input("Cuota Pura", value=datos_previos['CPura'] if datos_previos else 0, step=1)
+            
+            # --- NUEVO CAMPO PARA ADJUDICACIÓN ---
+            adj_text = st.text_input("Cuotas de Adjudicación (vacío para quitar):", value=adj_defecto)
             
             if st.form_submit_button("✅ Guardar Cambios"):
-                nuevo = {"Modelo": mod_a_editar, "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp}
+                nuevo = {
+                    "Modelo": mod_a_editar, "VM": vm, "Susc": su, "C1": c1, 
+                    "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp,
+                    "Adj_Pactada": adj_text # Guardamos el nuevo campo
+                }
                 st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
                 st.session_state.lista_precios.append(nuevo)
                 st.success(f"{mod_a_editar} actualizado")
@@ -47,7 +58,16 @@ with st.sidebar:
                 if "/" in l and len(l.strip()) <= 10: st.session_state.fecha_vigencia = l.strip(); continue
                 p = l.split(",")
                 if len(p) >= 8:
-                    try: temp.append({"Modelo": p[0].strip(), "VM": int(float(p[1])), "Susc": int(float(p[2])), "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), "CFin": int(float(p[6])), "CPura": int(float(p[7]))})
+                    try: 
+                        # Al cargar archivo, asignamos adjudicación por defecto según modelo
+                        m_nombre = p[0].strip()
+                        adj_ini = "8, 12 y 24" if m_nombre in ["TERA", "NIVUS", "T-CROSS"] else ""
+                        temp.append({
+                            "Modelo": m_nombre, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
+                            "CFin": int(float(p[6])), "CPura": int(float(p[7])),
+                            "Adj_Pactada": adj_ini
+                        })
                     except: continue
             st.session_state.lista_precios = temp
 
@@ -57,19 +77,21 @@ if st.session_state.lista_precios:
     mod_sel = st.selectbox("🎯 Seleccionar para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
-    # Formateo con puntos para el mensaje final
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     
     if d['Modelo'] == "VIRTUS": tp = "Plan 100% financiado"
     elif d['Modelo'] in ["AMAROK", "TAOS"]: tp = "Plan 60/40"
     else: tp = "Plan 70/30"
-        
-    adj = f"🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24\\n\\n" if d['Modelo'] in ["TERA", "NIVUS", "T-CROSS"] else ""
+    
+    # --- LÓGICA DE ADJUDICACIÓN DINÁMICA ---
+    adj_final = ""
+    if d.get('Adj_Pactada'):
+        adj_final = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n"
 
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
            f"🚘 *Vehículo:* {d['Modelo']}\\n\\n*Valor del Auto:* ${fmt(d['VM'])}\\n\\n*Tipo de Plan:* {tp}\\n\\n"
-           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\\n\\n{adj}"
+           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\\n\\n{adj_final}"
            f"*Detalle de Inversión Inicial:*\n* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
            f"* *Costo Normal de Ingreso:* ${fmt(d['Susc']+d['C1'])}. (Ver Beneficio 👇)\\n\\n"
            f"-----------------------------------------------------------\n"
@@ -81,7 +103,7 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\\n\\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # BOTÓN DE COPIADO
+    # BOTÓN DE COPIADO PRO
     st.write("---")
     html_button = f"""
     <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 16px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button>
@@ -104,4 +126,4 @@ if st.session_state.lista_precios:
     with st.expander("🔍 Ver texto"):
         st.text(msj.replace("\\n", "\n"))
 else:
-    st.info("Cargá la planilla para empezar.")
+    st.info("Cargá la planilla.")

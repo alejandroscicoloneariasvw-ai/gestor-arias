@@ -4,31 +4,35 @@ import pandas as pd
 
 st.set_page_config(page_title="Arias Hnos.", layout="wide")
 
-# --- CSS: EL CUADRITO DE 2x2 CM ---
+# --- CSS: REDUCCIÓN TOTAL Y CUADRITO 2x2 ---
 st.markdown("""
     <style>
-    /* Creamos el cuadradito azul de 2x2 cm aprox */
+    /* Eliminamos espacios sobrantes arriba */
+    .block-container { padding-top: 1rem !important; }
+    
+    /* Forzamos el cuadradito azul a ser pequeño (aprox 2x2 cm) */
     .stCodeBlock {
-        width: 70px !important;
-        height: 70px !important;
+        width: 75px !important;
+        height: 75px !important;
         overflow: hidden !important;
         border: 3px solid #007bff !important;
-        border-radius: 12px !important;
-        background-color: #f0f2f6 !important;
+        border-radius: 10px !important;
+        margin-bottom: 0px !important;
     }
-    /* Escondemos el texto para que solo quede el icono de copiar */
-    .stCodeBlock pre {
-        visibility: hidden !important;
-    }
-    /* Ajustamos el título para que no ocupe tanto espacio */
-    h1 {
-        font-size: 24px !important;
-        padding-top: 0px !important;
+    /* Escondemos el texto para que no estire el cuadro */
+    .stCodeBlock pre { visibility: hidden !important; }
+    
+    /* Achicamos el texto de las instrucciones */
+    .instruccion-mini {
+        font-size: 12px;
+        color: #007bff;
+        font-weight: bold;
+        margin-bottom: 2px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🚗 Arias Hnos. | Ventas")
+st.title("🚗 Arias Hnos.")
 
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
@@ -39,6 +43,7 @@ if 'fecha_vigencia' not in st.session_state:
 with st.sidebar:
     st.header("📥 Carga")
     modo = st.radio("Método:", ["Manual", "Archivo (.txt)"])
+    # ... (mismo código de carga anterior para mantener funcionalidad)
     if modo == "Manual":
         with st.form("f"):
             st.session_state.fecha_vigencia = st.text_input("Fecha:", st.session_state.fecha_vigencia)
@@ -69,9 +74,9 @@ with st.sidebar:
                     except: continue
             st.session_state.lista_precios = temp
 
-# --- 2. SELECTOR Y MENSAJE ---
+# --- 2. SELECTOR Y PROCESO ---
 if st.session_state.lista_precios:
-    mod_sel = st.selectbox("🔍 Vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🔍 Seleccionar Auto:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
@@ -93,18 +98,12 @@ if st.session_state.lista_precios:
            f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
            f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    # --- DISEÑO MINIMALISTA ---
-    col_btn, col_txt = st.columns([1, 4])
-    with col_btn:
-        st.write("**COPIAR:**")
-        st.code(msj, language=None) # Aquí aparece el cuadradito de 2x2 cm
-    
-    with col_txt:
-        st.info("Hacé clic en el icono de las hojitas dentro del cuadro azul.")
+    # --- ÁREA DE COPIADO ULTRA PEQUEÑA ---
+    st.markdown('<p class="instruccion-mini">COPIAR AQUÍ:</p>', unsafe_allow_html=True)
+    st.code(msj, language=None) 
 
     st.divider()
-    # Pegado manual bien escondido abajo
-    with st.expander("📄 Ver presupuesto / Pegado manual"):
+    with st.expander("📄 Ver texto / Pegado manual"):
         st.text_area("", msj, height=150)
 else:
     st.info("Cargá datos a la izquierda.")

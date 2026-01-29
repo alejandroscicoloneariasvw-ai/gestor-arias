@@ -33,7 +33,6 @@ else:
             contenido = archivo.getvalue().decode("utf-8")
         except UnicodeDecodeError:
             contenido = archivo.getvalue().decode("latin-1")
-        
         lineas = contenido.split("\n")
         temp = []
         for l in lineas:
@@ -42,45 +41,41 @@ else:
                 try:
                     temp.append({"Modelo": p[0].strip(), "VM": int(float(p[1])), "Susc": int(float(p[2])), "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), "CFin": int(float(p[6])), "CPura": int(float(p[7]))})
                 except ValueError: continue
-        if temp:
-            st.session_state.lista_precios = temp
-            st.sidebar.success("✅ ¡Archivo cargado!")
+        st.session_state.lista_precios = temp
 
 # --- 2. SELECTOR Y CONSULTA ---
 if st.session_state.lista_precios:
     st.divider()
-    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
+    modelo_sel = st.selectbox("🔍 Seleccioná el vehículo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == modelo_sel)
 
-    # CÁLCULOS
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # --- 3. FORMATO WHATSAPP CON ADJUDICACIÓN Y EMOJIS ---
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *05/12/2025*, aquí tienes el detalle para el:\n\n"
-           f"🚘 *Vehículo:* {d['Modelo']}\n"
-           f"💰 *Valor del Auto:* ${d['VM']:,}\n"
-           f"📍 *Tipo de Plan:* Plan 70/30\n"
-           f"⌛ *Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura de *${d['CPura']:,}*)\n\n"
-           f"🤝 *ADJUDICACIÓN PACTADA EN CUOTA:* 8, 12 y 24 ✅\n\n"
-           f"✳️ *Inversión Inicial:*\n"
-           f"👉 *Suscripción:* ${d['Susc']:,}\n"
-           f"👉 *Cuota Nº 1:* ${d['C1']:,}\n"
-           f"👉 *Costo Normal:* ${costo_normal:,} (Ver Beneficio 👇)\n\n"
+    # --- 3. FORMATO EXACTO AL EJEMPLO ---
+    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *05/12/2025*, aquí tienes el detalle de los costos para el:\n\n"
+           f"*Vehículo:* {d['Modelo']}\n\n"
+           f"*Valor del Auto:* ${d['VM']:,}\n\n"
+           f"*Tipo de Plan:* Plan 70/30\n\n"
+           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura de *${d['CPura']:,}*)\n\n"
+           f"*Adjudicación Pactada en Cuota:* 8, 12 y 24\n\n\n"
+           f"*Detalle de Inversión Inicial:*\n"
+           f"* *Suscripción a Financiación:* ${d['Susc']:,}\n"
+           f"* *Cuota Nº 1:* ${d['C1']:,}\n"
+           f"* *Costo Normal de Ingreso:* ${costo_normal:,}. (Ver Beneficio Exclusivo 👇)\n\n"
            f"-----------------------------------------------------------\n"
-           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${d['Adh']:,}*, ya cubrís el **INGRESO COMPLETO**.\n\n"
-           f"💰 *AHORRO DIRECTO HOY: ${ahorro:,}* 🎁\n"
+           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${d['Adh']:,}*, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n\n"
+           f"💰 *AHORRO DIRECTO HOY: ${ahorro:,}*\n"
            f"-----------------------------------------------------------\n\n"
-           f"✳️ *Cuotas posteriores:*\n"
-           f"✅ *Cuotas 2 a 13:* ${d['C2_13']:,}\n"
-           f"✅ *Cuotas 14 a 84:* ${d['CFin']:,}\n"
-           f"✅ *Cuota Pura:* ${d['CPura']:,}\n\n"
-           f"Los cupos con este beneficio son limitados. Si quieres avanzar mándame foto de DNI frente y dorso y reservamos tu unidad. 🎈🎈").replace(",", ".")
+           f"*Esquema de cuotas posteriores:*\n"
+           f"* *Cuotas 2 a 13:* ${d['C2_13']:,}\n"
+           f"* *Cuotas 14 a 84:* ${d['CFin']:,}\n"
+           f"* *Cuota Pura:* ${d['CPura']:,}\n\n"
+           f"Los cupos con este beneficio de ingreso son limitados por la vigencia de la planilla. "
+           f"Si queda alguna duda a disposición. Si quieres avanzar mándame por este medio foto de DNI de adelante y de atrás "
+           f"y te comento como realizaremos este pago Beneficio. 🎈🎈").replace(",", ".")
 
-    st.subheader("📱 Vista Previa del Mensaje")
-    st.info(msj)
+    st.subheader("📝 Mensaje para el Cliente")
+    st.text_area("Copiá el texto aquí abajo 👇", msj, height=350)
     
-    link_wa = f"https://wa.me/?text={msj.replace(' ', '%20').replace('\n', '%0A')}"
-    st.markdown(f"### [🚀 ENVIAR POR WHATSAPP CON EMOJIS]({link_wa})")
-else:
-    st.info("👋 Alejandro, primero cargá los datos desde el panel lateral.")
+    st.info("💡 **Tip:** Seleccioná todo el texto del cuadro de arriba, copialo y pegalo directamente en el chat de WhatsApp del cliente.")

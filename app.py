@@ -61,10 +61,8 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro = costo_normal - d['Adh']
 
-    # Lógica de Plan
     tipo_plan = "Plan 100% financiado" if d['Modelo'] == "VIRTUS" else "Plan 70/30"
 
-    # Lógica de Adjudicación
     linea_adjudicacion = ""
     if d['Modelo'] in ["TERA", "NIVUS", "T-CROSS"]:
         linea_adjudicacion = f"🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24\n\n"
@@ -72,7 +70,6 @@ if st.session_state.lista_precios:
     def fmt(num):
         return f"{num:,}".replace(",", ".")
 
-    # --- FORMATO WHATSAPP ---
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\n\n"
            f"🚘 *Vehículo:* {d['Modelo']}\n\n"
            f"*Valor del Auto:* ${fmt(d['VM'])}\n\n"
@@ -91,15 +88,17 @@ if st.session_state.lista_precios:
            f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\n"
            f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\n"
            f"* *Cuota Pura:* ${fmt(d['CPura'])}\n\n"
-           f"⚠️ *IMPORTANTE:* Los cupos con este beneficio de ingreso son limitados por stock de planilla. "
-           f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 💼✅")
+           f"⚠️ *IMPORTANTE:* Los cupos con este beneficio por *${fmt(d['Adh'])}* (donde tienes cubierta la suscripción y cuota 1) son limitados por stock de planilla. 💼✅\n\n"
+           f"🎁 Además, vas a contar con un **servicio bonificado** y un **polarizado de regalo**.\n\n"
+           f"Si queda alguna duda quedo a disposición. Para avanzar con la reserva, envíame por este medio foto de tu **DNI (frente y dorso)** y coordinamos el pago del beneficio. 📝📲")
 
-    st.subheader("📋 Presupuesto para Copiar")
-    st.code(msj, language=None)
+    # --- CUADROS ACHICADOS ---
+    st.write("📋 **Copiá aquí (Botón arriba a la derecha):**")
+    # Wrap=True hace que el cuadro no se estire a lo ancho y sea más bajo
+    st.code(msj, language=None, wrap_lines=True)
     
-    st.divider()
-    st.write("👇 **Respaldo Manual:**")
-    st.text_area("Seleccioná y copiá:", msj, height=250)
+    with st.expander("🖱️ Carga manual (Si el botón falla)"):
+        st.text_area("Copiá desde aquí:", msj, height=100)
 
 else:
     st.info("👋 Alejandro, cargá los datos para empezar.")

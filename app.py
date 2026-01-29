@@ -16,7 +16,6 @@ reader = get_reader()
 
 def limpiar_precio(texto):
     num = re.sub(r'[^0-9]', '', texto)
-    # Filtro estricto: si el número es muy chico o muy grande, no es un precio [cite: 2026-01-27]
     if not num or len(num) < 5 or len(num) > 7: 
         return None
     if len(num) == 7 and num.startswith(('5', '8', '3')):
@@ -31,7 +30,7 @@ opcion = st.radio("Menú Principal:", ["Cargar una planilla nueva", "Usar datos 
 if opcion == "Cargar una planilla nueva":
     archivo = st.file_uploader("Subí la planilla amarilla", type=['jpg', 'jpeg', 'png'])
     if archivo:
-        with st.spinner('🚀 Procesando y ordenando cuotas...'):
+        with st.spinner('🚀 Vinculando montos por palabra clave...'):
             img = Image.open(archivo)
             res = reader.readtext(np.array(img), detail=0)
             
@@ -45,33 +44,44 @@ if opcion == "Cargar una planilla nueva":
                     if m in t_up: mod_actual = m
                 
                 if mod_actual:
-                    # 1. SUSCRIPCIÓN (Se mantiene tu lógica estable)
+                    # 1. SUSCRIPCIÓN
                     if "SUSC" in t_up and datos[mod_actual]["Susc"] == 0:
-                        for j in range(1, 5):
+                        for j in range(1, 4):
                             if i+j < len(res):
                                 p = limpiar_precio(res[i+j])
                                 if p:
                                     datos[mod_actual]["Susc"] = p
                                     break
                     
-                    # 2. CUOTAS (Filtro por tamaño para evitar desorden)
+                    # 2. CUOTA 1 (El monto que suele estar cerca de la palabra CUOTA)
                     if "CUOTA" in t_up and "12" not in t_up and "84" not in t_up:
                         if datos[mod_actual]["C1"] == 0:
-                            encontrados = []
-                            # Miramos más adelante para no perder ninguna columna [cite: 2026-01-27]
-                            for j in range(1, 15): 
+                            for j in range(1, 5):
                                 if i+j < len(res):
                                     p = limpiar_precio(res[i+j])
-                                    # Solo tomamos números que no sean la suscripción y sean precios lógicos
-                                    if p and p != datos[mod_actual]["Susc"] and p > 150000:
-                                        if p not in encontrados: encontrados.append(p)
-                            
-                            # Ordenamos de Mayor a Menor: C1 > C2-13 > C14-84 [cite: 2026-01-27]
-                            if len(encontrados) >= 3:
-                                encontrados.sort(reverse=True)
-                                datos[mod_actual]["C1"] = encontrados[0]
-                                datos[mod_actual]["C2_13"] = encontrados[1]
-                                datos[mod_actual]["C14_84"] = encontrados[2]
+                                    if p and p != datos[mod_actual]["Susc"]:
+                                        datos[mod_actual]["C1"] = p
+                                        break
+
+                    # 3. CUOTA 2-13 (Usamos tu hallazgo: la palabra ADHERIDO)
+                    if "ADHERI" in t_up and datos[mod_actual]["C2_13"] == 0:
+                        for j in range(1, 4):
+                            if i+j < len(res):
+                                p = limpiar_precio(res[i+j])
+                                if p:
+                                    datos[mod_actual]["C2_13"] = p
+                                    break
+
+                    # 4. CUOTA 14-84 (Buscamos el monto restante que sea menor a la C1)
+                    if datos[mod_actual]["C14_84"] == 0 and datos[mod_actual]["C1"] > 0:
+                        for j in range(1, 15):
+                            if i+j < len(res):
+                                p = limpiar_precio(res[i+j])
+                                # Si encontramos un precio que no es ninguno de los anteriores
+                                if p and p not in [datos[mod_actual]["Susc"], datos[mod_actual]["C1"], datos[mod_actual]["C2_13"]]:
+                                    if p > 100000: # Filtro de seguridad
+                                        datos[mod_actual]["C14_84"] = p
+                                        break
 
             st.session_state.memoria_final = {m: {
                 "Susc": f"${datos[m]['Susc']:,}".replace(",", ".") if datos[m]["Susc"] > 0 else "$0",
@@ -79,9 +89,9 @@ if opcion == "Cargar una planilla nueva":
                 "C2_13": f"${datos[m]['C2_13']:,}".replace(",", ".") if datos[m]["C2_13"] > 0 else "$0",
                 "C14_84": f"${datos[m]['C14_84']:,}".replace(",", ".") if datos[m]["C14_84"] > 0 else "$0"
             } for m in modelos}
-            st.success("✅ ¡Valores corregidos y ordenados!")
+            st.success("✅ ¡Vinculación por ADHERIDO exitosa!")
 
-# --- VISTA Y WHATSAPP ---
+# --- VISTA ---
 if st.session_state.memoria_final:
     d = st.session_state.memoria_final
     modelos_lista = ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
@@ -89,7 +99,7 @@ if st.session_state.memoria_final:
     st.table(pd.DataFrame(df_data))
     
     st.divider()
-    sel = st.selectbox("Seleccioná el modelo:", modelos_lista)
+    sel = st.selectbox("Elegí el modelo:", modelos_lista)
     msj = (f"*Arias Hnos.*\n*Auto:* {sel}\n"
            f"✅ *Suscripción:* {d[sel]['Susc']}\n"
            f"✅ *Cuota 1:* {d[sel]['C1']}\n"

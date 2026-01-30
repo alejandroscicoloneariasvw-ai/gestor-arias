@@ -9,37 +9,51 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
+# Nombres profesionales definidos
+nombres_pro = {
+    "TERA": "TERA TREND MSI",
+    "VIRTUS": "VIRTUS TRENDLINE 1.6",
+    "T-CROSS": "T-CROSS 200TSI",
+    "NIVUS": "NIVUS 200TSI",
+    "AMAROK": "AMAROK COMFORTLINE V6",
+    "TAOS": "TAOS COMFORTLINE"
+}
+
 # --- BARRA LATERAL: CARGA Y EDICIÓN ---
 with st.sidebar:
     st.header("📥 Gestión de Planilla")
     modo = st.radio("Acción:", ["Editar Precios / Manual", "Cargar Archivo .txt"])
     
     if modo == "Editar Precios / Manual":
-        # Nombres profesionales para la selección
-        opciones = ["TERA TREND MSI", "VIRTUS TRENDLINE 1.6", "T-CROSS 200TSI", "NIVUS 200TSI", "AMAROK COMFORTLINE V6", "TAOS COMFORTLINE"]
-        mod_a_editar = st.selectbox("Vehículo:", opciones)
-        datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == mod_a_editar), None)
+        mod_base = st.selectbox("Vehículo a editar:", list(nombres_pro.keys()))
+        nombre_completo = nombres_pro[mod_base]
         
-        adj_defecto = "8, 12 y 24" if "TERA" in mod_a_editar or "NIVUS" in mod_a_editar or "T-CROSS" in mod_a_editar else ""
+        # BUSCAR DATOS: Primero intentamos con el nombre pro, si no, con el base
+        datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == nombre_completo), None)
+        if not datos_previos:
+            datos_previos = next((a for a in st.session_state.lista_precios if mod_base in a['Modelo']), None)
+        
+        adj_defecto = "8, 12 y 24" if mod_base in ["TERA", "NIVUS", "T-CROSS"] else ""
         if datos_previos and 'Adj_Pactada' in datos_previos: 
             adj_defecto = datos_previos['Adj_Pactada']
 
         with st.form("f_editar"):
-            st.write(f"🔧 Ajustando: **{mod_a_editar}**")
-            vm = st.number_input("Valor Móvil", value=datos_previos['VM'] if datos_previos else 0, step=1)
-            su = st.number_input("Suscripción", value=datos_previos['Susc'] if datos_previos else 0, step=1)
-            c1 = st.number_input("Cuota 1", value=datos_previos['C1'] if datos_previos else 0, step=1)
-            ad = st.number_input("Paga con Beneficio", value=datos_previos['Adh'] if datos_previos else 0, step=1)
-            c2 = st.number_input("Cuota 2-13", value=datos_previos['C2_13'] if datos_previos else 0, step=1)
-            cf = st.number_input("Cuota Final", value=datos_previos['CFin'] if datos_previos else 0, step=1)
-            cp = st.number_input("Cuota Pura", value=datos_previos['CPura'] if datos_previos else 0, step=1)
+            st.write(f"🔧 Editando: **{nombre_completo}**")
+            # Si datos_previos existe, cargamos sus valores, sino 0
+            vm = st.number_input("Valor Móvil", value=int(datos_previos['VM']) if datos_previos else 0, step=1)
+            su = st.number_input("Suscripción", value=int(datos_previos['Susc']) if datos_previos else 0, step=1)
+            c1 = st.number_input("Cuota 1", value=int(datos_previos['C1']) if datos_previos else 0, step=1)
+            ad = st.number_input("Paga con Beneficio", value=int(datos_previos['Adh']) if datos_previos else 0, step=1)
+            c2 = st.number_input("Cuota 2-13", value=int(datos_previos['C2_13']) if datos_previos else 0, step=1)
+            cf = st.number_input("Cuota Final", value=int(datos_previos['CFin']) if datos_previos else 0, step=1)
+            cp = st.number_input("Cuota Pura", value=int(datos_previos['CPura']) if datos_previos else 0, step=1)
             adj_text = st.text_input("Cuotas de Adjudicación:", value=adj_defecto)
             
-            if st.form_submit_button("✅ Guardar y Actualizar"):
-                nuevo = {"Modelo": mod_a_editar, "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_text}
-                st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
+            if st.form_submit_button("✅ Guardar Cambios"):
+                nuevo = {"Modelo": nombre_completo, "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_text}
+                st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != nombre_completo]
                 st.session_state.lista_precios.append(nuevo)
-                st.success(f"¡{mod_a_editar} actualizado!")
+                st.success(f"¡{nombre_completo} actualizado!")
                 st.rerun()
     else:
         arc = st.file_uploader("Subir .txt", type=['txt'])
@@ -52,18 +66,20 @@ with st.sidebar:
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
-                        m_raw = p[0].strip()
-                        # Limpiamos paréntesis si vienen del archivo
-                        m_n = m_raw.split("(")[0].strip().upper()
-                        adj_ini = "8, 12 y 24" if any(x in m_n for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
+                        m_raw = p[0].strip().upper()
+                        m_final = m_raw
+                        for base, pro in nombres_pro.items():
+                            if base in m_raw: m_final = pro; break
+                        
+                        adj_ini = "8, 12 y 24" if any(x in m_final for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
                         temp.append({
-                            "Modelo": m_n, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "Modelo": m_final, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
                             "CFin": int(float(p[6])), "CPura": int(float(p[7])), "Adj_Pactada": adj_ini
                         })
                     except: continue
             st.session_state.lista_precios = temp
-            st.success("Planilla profesional cargada.")
+            st.success("Planilla cargada con éxito.")
 
 # --- CUERPO PRINCIPAL (VISTA CLIENTE) ---
 if st.session_state.lista_precios:
@@ -74,7 +90,6 @@ if st.session_state.lista_precios:
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     
-    # Lógica de planes
     if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
     else: tp = "Plan 70/30"
@@ -113,7 +128,7 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Presupuesto copiado con éxito!');
+        alert('✅ ¡Presupuesto copiado!');
     }}
     </script>
     """

@@ -15,7 +15,6 @@ with st.sidebar:
     modo = st.radio("Método:", ["Manual / Editar", "Subir Archivo (.txt)"])
     
     if modo == "Manual / Editar":
-        # Extraemos los nombres de los modelos que ya están cargados para poder elegirlos
         opciones_actuales = [a['Modelo'] for a in st.session_state.lista_precios] if st.session_state.lista_precios else ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
         mod_a_editar = st.selectbox("Modelo a modificar:", opciones_actuales)
         
@@ -23,7 +22,6 @@ with st.sidebar:
 
         with st.form("f_editar"):
             st.write(f"Editing: **{mod_a_editar}**")
-            # El nombre se puede editar aquí mismo para que sea profesional
             nuevo_nombre = st.text_input("Nombre del Vehículo (Completo):", value=mod_a_editar)
             vm = st.number_input("Valor Móvil", value=int(datos_previos['VM']) if datos_previos else 0, step=1)
             su = st.number_input("Suscripción", value=int(datos_previos['Susc']) if datos_previos else 0, step=1)
@@ -36,7 +34,6 @@ with st.sidebar:
             
             if st.form_submit_button("✅ Guardar y Actualizar"):
                 nuevo = {"Modelo": nuevo_nombre.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_text}
-                # Reemplazamos el viejo por el nuevo
                 st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
                 st.session_state.lista_precios.append(nuevo)
                 st.success("¡Datos actualizados!")
@@ -48,11 +45,12 @@ with st.sidebar:
             lineas = cont.split("\n")
             temp = []
             for l in lineas:
-                if "/" in l and len(l.strip()) <= 10: st.session_state.fecha_vigencia = l.strip(); continue
+                if "/" in l and len(l.strip()) <= 10: 
+                    st.session_state.fecha_vigencia = l.strip()
+                    continue
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
-                        # Tomamos el nombre exacto del archivo sin recortes raros
                         m_final = p[0].strip().upper()
                         adj_ini = "8, 12 y 24" if any(x in m_final for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
                         temp.append({
@@ -62,19 +60,20 @@ with st.sidebar:
                         })
                     except: continue
             st.session_state.lista_precios = temp
-            st.success("Planilla cargada con nombres del archivo.")
+            st.success("Planilla cargada correctamente.")
 
-# --- CUERPO PRINCIPAL (VISTA CLIENTE) ---
+# --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
-    st.title("🚗 Arias Hnos. | Ventas")
-    # El selector principal ahora mostrará los nombres largos del archivo
+    # EL CAMBIO QUE PEDISTE: Título y firma personalizada
+    st.markdown("## 🚗 Arias Hnos. | Presupuestos")
+    st.markdown("<p style='font-size: 14px; margin-top: -15px;'>by Alejandro Scicolone</p>", unsafe_allow_html=True)
+    
     mod_sel = st.selectbox("🎯 Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     
-    # Lógica de planes ajustada a nombres del archivo
     if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
     elif "AMAROK" in d['Modelo'] or "TAOS" in d['Modelo']: tp = "Plan 60/40"
     else: tp = "Plan 70/30"
@@ -94,10 +93,10 @@ if st.session_state.lista_precios:
            f"-----------------------------------------------------------\\n"
            f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})\\n"
            f"-----------------------------------------------------------\\n\\n"
-           f"💳 **DATO CLAVE:** Podés abonar el beneficio con **Tarjeta de Crédito** para patear el pago 30 días. Además, la Cuota Nº 2 recién te llegará a los **60 días**. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\\n\\n"
-           f"✨ **EL CAMBIO QUE MERECÉS:** Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo de tu familia al ver el **{d['Modelo']}** nuevo. Ese momento de compartirlo con amigos y disfrutar del confort que te ganaste con tu esfuerzo. Hoy estamos a un solo paso. 🥂\\n\\n"
-           f"⚠️ **IMPORTANTE:** Al momento de enviarte esto, solo me quedan **2 cupos disponibles** con estas condiciones de abonar un monto menor en la Cuota 1 y Suscripción (Ver **Beneficio Exclusivo** arriba). 💼✅\\n\\n"
-           f"🎁 Para asegurarte la bonificación del **PRIMER SERVICIO DE MANTENIMIENTO** y el **POLARIZADO DE REGALO**, enviame ahora la foto de tu **DNI (frente y dorso)**. Yo reservo el cupo mientras terminás de decidirlo, así no perdés el beneficio por falta de stock y coordinamos el pago del beneficio. ¿Te parece bien? 📝📲")
+           f"💳 **DATO CLAVE:** Podés abonar el beneficio con **Tarjeta de Crédito** para patear el pago 30 días. Además, la Cuota Nº 2 recién te llegará a los **60 días**. 🚀\\n\\n"
+           f"✨ **EL CAMBIO QUE MERECÉS:** Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo de tu familia al ver el **{d['Modelo']}** nuevo. 🥂\\n\\n"
+           f"⚠️ **IMPORTANTE:** Solo me quedan **2 cupos disponibles** con estas condiciones. 💼✅\\n\\n"
+           f"🎁 Para asegurar la bonificación del **PRIMER SERVICIO** y el **POLARIZADO**, enviame ahora la foto de tu **DNI**. ¿Te parece bien? 📝📲")
 
     st.write("---")
     html_button = f"""
@@ -113,12 +112,11 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Copiado! El nombre del vehículo ahora es el del archivo.');
+        alert('✅ ¡Copiado!');
     }}
     </script>
     """
     st.components.v1.html(html_button, height=100)
-    st.write("---")
     with st.expander("🔍 Vista Previa"):
         st.text(msj.replace("\\n", "\n"))
 else:

@@ -1,29 +1,36 @@
 import streamlit as st
-import pandas as pd
 
-st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas", layout="wide")
+# Configuración de página
+st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas", layout="centered")
 
+# Título Principal
 st.title("🚗 Arias Hnos. | Presupuestador")
+st.write("Bienvenido, Alejandro.")
 
-# Preguntar si quiere cargar nueva planilla o usar la anterior
-opcion = st.radio("¿Qué desea hacer?", ["Cargar nueva planilla", "Usar datos guardados"])
+# --- LÓGICA DE CARGA ---
+st.subheader("Configuración de Datos")
+modo = st.radio("¿Qué desea hacer?", ["Cargar nueva planilla", "Usar datos guardados"])
 
-if opcion == "Cargar nueva planilla":
-    archivo = st.file_input("Suba el archivo TXT de la planilla", type=["txt"])
-    if archivo is not None:
-        # Aquí procesamos la planilla
-        st.success("Planilla cargada con éxito")
+if modo == "Cargar nueva planilla":
+    archivo = st.file_uploader("Suba el archivo de la planilla (TXT o PDF)", type=["txt", "pdf"])
+    if archivo:
+        st.success("Archivo recibido correctamente.")
 else:
-    st.info("Utilizando la última planilla cargada.")
+    st.info("Usando los datos de la última planilla cargada.")
 
-# Botones que pediste
+# --- ESPACIO PARA EL PRESUPUESTO ---
+st.write("---")
+st.subheader("Generador de Presupuesto")
+st.text_area("Resultado del presupuesto:", "Aquí aparecerán los datos para el cliente...", height=200)
+
+# --- BOTONES QUE PEDISTE ---
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("Copiar Presupuesto"):
-        st.write("Copiado al portapapeles (Simulado)")
+    if st.button("📋 Copiar Presupuesto"):
+        st.toast("¡Copiado al portapapeles!")
 with col2:
-    if st.button("Imprimir"):
-        st.write("Enviando a imprimir...")
+    if st.button("🖨️ Imprimir"):
+        st.write("Abriendo menú de impresión...")
 
 st.write("---")
-st.caption("Desarrollado para Alejandro - Arias Hnos. 2026")
+st.caption("Gestor Arias v2.0 - 2026")

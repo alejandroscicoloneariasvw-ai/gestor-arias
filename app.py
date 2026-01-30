@@ -9,37 +9,22 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# Nombres profesionales definidos
-nombres_pro = {
-    "TERA": "TERA TREND MSI",
-    "VIRTUS": "VIRTUS TRENDLINE 1.6",
-    "T-CROSS": "T-CROSS 200TSI",
-    "NIVUS": "NIVUS 200TSI",
-    "AMAROK": "AMAROK COMFORTLINE V6",
-    "TAOS": "TAOS COMFORTLINE"
-}
-
 # --- BARRA LATERAL: CARGA Y EDICIÓN ---
 with st.sidebar:
-    st.header("📥 Gestión de Planilla")
-    modo = st.radio("Acción:", ["Editar Precios / Manual", "Cargar Archivo .txt"])
+    st.header("📥 Carga y Edición")
+    modo = st.radio("Método:", ["Manual / Editar", "Subir Archivo (.txt)"])
     
-    if modo == "Editar Precios / Manual":
-        mod_base = st.selectbox("Vehículo a editar:", list(nombres_pro.keys()))
-        nombre_completo = nombres_pro[mod_base]
+    if modo == "Manual / Editar":
+        # Extraemos los nombres de los modelos que ya están cargados para poder elegirlos
+        opciones_actuales = [a['Modelo'] for a in st.session_state.lista_precios] if st.session_state.lista_precios else ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
+        mod_a_editar = st.selectbox("Modelo a modificar:", opciones_actuales)
         
-        # BUSCAR DATOS: Primero intentamos con el nombre pro, si no, con el base
-        datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == nombre_completo), None)
-        if not datos_previos:
-            datos_previos = next((a for a in st.session_state.lista_precios if mod_base in a['Modelo']), None)
-        
-        adj_defecto = "8, 12 y 24" if mod_base in ["TERA", "NIVUS", "T-CROSS"] else ""
-        if datos_previos and 'Adj_Pactada' in datos_previos: 
-            adj_defecto = datos_previos['Adj_Pactada']
+        datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == mod_a_editar), None)
 
         with st.form("f_editar"):
-            st.write(f"🔧 Editando: **{nombre_completo}**")
-            # Si datos_previos existe, cargamos sus valores, sino 0
+            st.write(f"Editing: **{mod_a_editar}**")
+            # El nombre se puede editar aquí mismo para que sea profesional
+            nuevo_nombre = st.text_input("Nombre del Vehículo (Completo):", value=mod_a_editar)
             vm = st.number_input("Valor Móvil", value=int(datos_previos['VM']) if datos_previos else 0, step=1)
             su = st.number_input("Suscripción", value=int(datos_previos['Susc']) if datos_previos else 0, step=1)
             c1 = st.number_input("Cuota 1", value=int(datos_previos['C1']) if datos_previos else 0, step=1)
@@ -47,13 +32,14 @@ with st.sidebar:
             c2 = st.number_input("Cuota 2-13", value=int(datos_previos['C2_13']) if datos_previos else 0, step=1)
             cf = st.number_input("Cuota Final", value=int(datos_previos['CFin']) if datos_previos else 0, step=1)
             cp = st.number_input("Cuota Pura", value=int(datos_previos['CPura']) if datos_previos else 0, step=1)
-            adj_text = st.text_input("Cuotas de Adjudicación:", value=adj_defecto)
+            adj_text = st.text_input("Cuotas de Adjudicación:", value=datos_previos['Adj_Pactada'] if datos_previos else "8, 12 y 24")
             
-            if st.form_submit_button("✅ Guardar Cambios"):
-                nuevo = {"Modelo": nombre_completo, "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_text}
-                st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != nombre_completo]
+            if st.form_submit_button("✅ Guardar y Actualizar"):
+                nuevo = {"Modelo": nuevo_nombre.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_text}
+                # Reemplazamos el viejo por el nuevo
+                st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
                 st.session_state.lista_precios.append(nuevo)
-                st.success(f"¡{nombre_completo} actualizado!")
+                st.success("¡Datos actualizados!")
                 st.rerun()
     else:
         arc = st.file_uploader("Subir .txt", type=['txt'])
@@ -66,11 +52,8 @@ with st.sidebar:
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
-                        m_raw = p[0].strip().upper()
-                        m_final = m_raw
-                        for base, pro in nombres_pro.items():
-                            if base in m_raw: m_final = pro; break
-                        
+                        # Tomamos el nombre exacto del archivo sin recortes raros
+                        m_final = p[0].strip().upper()
                         adj_ini = "8, 12 y 24" if any(x in m_final for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
                         temp.append({
                             "Modelo": m_final, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
@@ -79,19 +62,21 @@ with st.sidebar:
                         })
                     except: continue
             st.session_state.lista_precios = temp
-            st.success("Planilla cargada con éxito.")
+            st.success("Planilla cargada con nombres del archivo.")
 
 # --- CUERPO PRINCIPAL (VISTA CLIENTE) ---
 if st.session_state.lista_precios:
     st.title("🚗 Arias Hnos. | Ventas")
+    # El selector principal ahora mostrará los nombres largos del archivo
     mod_sel = st.selectbox("🎯 Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
     ah = (d['Susc'] + d['C1']) - d['Adh']
     
+    # Lógica de planes ajustada a nombres del archivo
     if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
-    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
+    elif "AMAROK" in d['Modelo'] or "TAOS" in d['Modelo']: tp = "Plan 60/40"
     else: tp = "Plan 70/30"
     
     adj_final = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
@@ -128,7 +113,7 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Presupuesto copiado!');
+        alert('✅ ¡Copiado! El nombre del vehículo ahora es el del archivo.');
     }}
     </script>
     """

@@ -10,33 +10,16 @@ st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wi
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:ital,wght@0,400;0,700;1,300&display=swap');
-    
-    html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
+    html, body, [class*="css"], .stTextArea textarea {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-        font-size: 15px !important;
     }
-    
     .firma-scicolone {
-        font-family: 'Segoe UI', sans-serif;
-        font-style: italic;
-        font-weight: 300;
-        font-size: 14px;
-        color: #6c757d;
-        margin-top: -15px;
-        margin-bottom: 20px;
-        letter-spacing: 0.5px;
+        font-style: italic; font-weight: 300; font-size: 14px; color: #6c757d;
+        margin-top: -15px; margin-bottom: 20px;
     }
-    
     .caja-previa {
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 15px;
-        line-height: 1.6;
-        color: #1a1a1b;
-        background-color: #ffffff;
-        padding: 25px;
-        border-radius: 12px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+        background-color: #ffffff; padding: 25px; border-radius: 12px;
+        border: 1px solid #e0e0e0; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -48,12 +31,8 @@ if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 if 'carpetas_media' not in st.session_state:
     st.session_state.carpetas_media = {
-        "TERA TRENDLINE MSI": [],
-        "NIVUS 200 TSI": [],
-        "T-CROSS 200 TSI": [],
-        "VIRTUS TRENDLINE 1.6": [],
-        "AMAROK 4*2 TRENDLINE 2.0 140 CV": [],
-        "TAOS COMFORTLINE 1.4 150 CV": []
+        "TERA TRENDLINE MSI": [], "NIVUS 200 TSI": [], "T-CROSS 200 TSI": [],
+        "VIRTUS TRENDLINE 1.6": [], "AMAROK 4*2 TRENDLINE 2.0 140 CV": [], "TAOS COMFORTLINE 1.4 150 CV": []
     }
 
 if 'texto_cierre' not in st.session_state:
@@ -67,7 +46,7 @@ if 'texto_cierre' not in st.session_state:
         "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL: GESTIÓN Y EDICIÓN ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.header("📥 Gestión de Datos")
     if st.session_state.lista_precios:
@@ -148,11 +127,12 @@ if st.session_state.lista_precios:
     adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
+    # AJUSTE: Mención de Cuota Pura en el plazo
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
             f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
             f"**Tipo de Plan:** {tp}\\n"
-            f"**Plazo:** 84 Cuotas\\n\\n"
+            f"**Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\\n\\n"
             f"{adj_f}"
             f"**Detalle de Inversión Inicial:**\\n"
             f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n"
@@ -184,44 +164,31 @@ if st.session_state.lista_precios:
     </script>
     """, height=100)
 
-    with st.expander("👀 Ver Vista Previa del Mensaje"):
-        vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
-        st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
-
     # --- ARCHIVOS MULTIMEDIA ---
     st.write("---")
     st.subheader("📂 Archivos Multimedia")
     
-    with st.expander("🆕 Crear Carpeta Nueva"):
-        n_c = st.text_input("Nombre del vehículo:").upper()
-        if st.button("Confirmar Carpeta"):
-            if n_c: 
-                st.session_state.carpetas_media[n_c] = []
-                st.rerun()
-
     for carpeta in list(st.session_state.carpetas_media.keys()):
         with st.expander(f"📁 {carpeta}"):
             subida = st.file_uploader(f"Cargar en {carpeta}", accept_multiple_files=True, key=f"up_{carpeta}")
             if subida:
                 for arc in subida:
                     if arc.name not in [x['name'] for x in st.session_state.carpetas_media[carpeta]]:
-                        st.session_state.carpetas_media[carpeta].append({
-                            "name": arc.name, 
-                            "data": arc.getvalue(), 
-                            "type": arc.type
-                        })
+                        st.session_state.carpetas_media[carpeta].append({"name": arc.name, "data": arc.getvalue(), "type": arc.type})
 
             if st.session_state.carpetas_media[carpeta]:
                 seleccionados = []
                 for i, doc in enumerate(st.session_state.carpetas_media[carpeta]):
-                    c_sel, c_img, c_txt, c_del = st.columns([0.5, 1, 4, 1])
+                    c_sel, c_img, c_txt, c_dl, c_del = st.columns([0.5, 1, 3, 1, 1])
                     if c_sel.checkbox("", key=f"chk_{carpeta}_{i}"):
                         seleccionados.append(doc)
-                    if "image" in doc['type']: 
-                        c_img.image(doc['data'], width=60)
-                    else: 
-                        c_img.write("📄")
+                    if "image" in doc['type']: c_img.image(doc['data'], width=60)
+                    else: c_img.write("📄")
                     c_txt.text(doc['name'])
+                    
+                    # AJUSTE: Botón de descarga suelta al lado de cada archivo
+                    c_dl.download_button("📲", doc['data'], file_name=doc['name'], key=f"indiv_{carpeta}_{i}", help="Descarga suelta")
+                    
                     if c_del.button("🗑️", key=f"del_{carpeta}_{i}"):
                         st.session_state.carpetas_media[carpeta].pop(i)
                         st.rerun()
@@ -229,8 +196,7 @@ if st.session_state.lista_precios:
                 if seleccionados:
                     buf = io.BytesIO()
                     with zipfile.ZipFile(buf, "w") as fzip:
-                        for s in seleccionados: 
-                            fzip.writestr(s['name'], s['data'])
-                    st.download_button(f"📥 Descargar {len(seleccionados)} archivos marcados", buf.getvalue(), f"{carpeta}.zip", "application/zip", use_container_width=True)
+                        for s in seleccionados: fzip.writestr(s['name'], s['data'])
+                    st.download_button(f"📥 Descargar paquete ZIP ({len(seleccionados)} fotos)", buf.getvalue(), f"{carpeta}.zip", "application/zip", use_container_width=True)
 else:
     st.info("👋 Hola, carga la lista de precios para empezar.")

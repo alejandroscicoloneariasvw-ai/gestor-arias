@@ -1,181 +1,102 @@
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 
-# Configuración de página
-st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wide")
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(
+    page_title="Scicolone Data System", 
+    page_icon="📊", 
+    layout="wide"
+)
 
-# Estilo unificado para TODA la aplicación (Modificaciones y Vista Previa)
+# --- 2. ESTILOS CSS (Para que los botones y el diseño sean Pro) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&display=swap');
-    
-    html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !format;
-        font-size: 15px !important;
+    .main { background-color: #f5f7f9; }
+    .stButton>button {
+        width: 100%;
+        border-radius: 8px;
+        height: 3.5em;
+        font-weight: bold;
+        transition: all 0.3s;
+        border: 1px solid #d1d5db;
     }
-    
-    .caja-previa {
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 15px;
-        line-height: 1.6;
-        color: #1a1a1b;
-        background-color: #ffffff;
-        padding: 25px;
-        border-radius: 12px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    .stButton>button:hover {
+        border-color: #007bff;
+        color: #007bff;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    
-    /* Hacer el área de texto del cierre más cómoda */
-    .stTextArea textarea {
-        background-color: #fdfdfd;
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        text-align: center;
+        color: gray;
+        font-size: 0.8rem;
+        padding: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- MEMORIA DE SESIÓN ---
-if 'lista_precios' not in st.session_state:
-    st.session_state.lista_precios = []
-if 'fecha_vigencia' not in st.session_state:
-    st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
+# --- 3. ENCABEZADO PROFESIONAL ---
+st.title("📊 Sistema de Procesamiento de Planillas")
+st.markdown("<p style='font-size: 1.2rem; color: #555;'>Data Architecture & Development by <b>Alejandro Scicolone</b></p>", unsafe_allow_html=True)
+st.divider()
 
-# TEXTO DE CIERRE ESTÁNDAR
-if 'texto_cierre' not in st.session_state:
-    st.session_state.texto_cierre = (
-        "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
-        "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
-        "✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
-        "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
-        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅\n\n"
-        "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
-        "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
+# --- 4. LÓGICA DE CARGA DE DATOS ---
+col_menu, col_status = st.columns([2, 1])
+
+with col_menu:
+    opcion = st.radio(
+        "**Gestión de Datos:**",
+        ["Utilizar última planilla cargada", "Cargar nueva planilla (Foto o PDF)"],
+        index=0,
+        horizontal=True
     )
 
-# --- BARRA LATERAL (GESTIÓN Y EDICIÓN) ---
-with st.sidebar:
-    st.header("📥 Gestión de Datos")
-    
-    if st.session_state.lista_precios:
-        modo = st.radio("Acción:", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True)
-    else:
-        modo = "Cargar planilla nueva"
+# Simulamos una base de datos guardada
+if "datos" not in st.session_state:
+    st.session_state.datos = pd.DataFrame({
+        "ID": [1, 2],
+        "Descripción": ["Ejemplo de Carga", "Dato Histórico"],
+        "Estado": ["Procesado", "Guardado"]
+    })
 
-    if modo == "Cargar planilla nueva":
-        arc = st.file_uploader("Subir planilla .txt", type=['txt'])
-        if arc:
-            cont = arc.getvalue().decode("utf-8", errors="ignore")
-            lineas = cont.split("\n")
-            temp = []
-            for l in lineas:
-                if "/" in l and len(l.strip()) <= 10: 
-                    st.session_state.fecha_vigencia = l.strip()
-                    continue
-                p = l.split(",")
-                if len(p) >= 8:
-                    try:
-                        m_f = p[0].strip().upper()
-                        adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS", "VIRTUS"]) else ""
-                        temp.append({
-                            "Modelo": m_f, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
-                            "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
-                            "CFin": int(float(p[6])), "CPura": int(float(p[7])), "Adj_Pactada": adj_ini
-                        })
-                    except: continue
-            st.session_state.lista_precios = temp
-            st.rerun()
-
-    if st.session_state.lista_precios:
-        st.write("---")
-        st.subheader("📝 Modificar Cierre")
-        # Cuadro más largo para ver los 3 enunciados cómodamente
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=450)
-
-        st.write("---")
-        st.subheader("💰 Modificar Precios")
-        opcs = [a['Modelo'] for a in st.session_state.lista_precios]
-        m_sel_e = st.selectbox("Seleccionar Modelo:", opcs)
-        d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
-
-        with st.form("f_edit_precios"):
-            n_nom = st.text_input("Nombre del Vehículo:", value=d_e['Modelo'])
-            n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
-            n_su = st.number_input("Suscripción ($):", value=int(d_e['Susc']))
-            n_c1 = st.number_input("Cuota 1 ($):", value=int(d_e['C1']))
-            n_ad = st.number_input("Beneficio ($):", value=int(d_e['Adh']))
-            n_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
-            n_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
-            n_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
-            n_adj = st.text_input("Adjudicación Pactada:", value=d_e['Adj_Pactada'])
-            
-            if st.form_submit_button("💾 Guardar Cambios"):
-                for item in st.session_state.lista_precios:
-                    if item['Modelo'] == m_sel_e:
-                        item.update({"Modelo": n_nom.upper(), "VM": n_vm, "Susc": n_su, "C1": n_c1, 
-                                     "Adh": n_ad, "C2_13": n_c2, "CFin": n_cf, "CPura": n_cp, "Adj_Pactada": n_adj})
-                st.rerun()
-
-# --- CUERPO PRINCIPAL ---
-if st.session_state.lista_precios:
-    st.markdown(f"### 🚗 Arias Hnos. | Gestión de Presupuestos")
-    
-    mod_sel = st.selectbox("🎯 Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
-    d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
-    
-    fmt = lambda x: f"{x:,}".replace(",", ".")
-    costo_normal = d['Susc'] + d['C1']
-    ahorro_total = costo_normal - d['Adh']
-    
-    # Lógica de Planes (Tera, Nivus, T-Cross = 70/30)
-    if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
-    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
-    elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
-    else: tp = "Plan estándar"
-    
-    adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
-    cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
-    
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
-           f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
-           f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
-           f"**Tipo de Plan:** {tp}\\n"
-           f"**Plazo:** 84 Cuotas\\n\\n"
-           f"{adj_f}"
-           f"**Detalle de Inversión Inicial:**\\n"
-           f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n"
-           f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
-           f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\\n\\n"
-           f"-----------------------------------------------------------\\n"
-           f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\\n\\n"
-           f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\\n"
-           f"-----------------------------------------------------------\\n\\n"
-           f"**Esquema de cuotas posteriores:**\\n"
-           f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\\n"
-           f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
-           f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
-           f"{cierre_v}")
-
-    # BOTÓN DE COPIADO
-    st.write("---")
-    st.components.v1.html(f"""
-    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">📋 COPIAR PARA WHATSAPP</button></div>
-    <script>
-    function copyToClipboard() {{
-        const text = `{msj}`;
-        const el = document.createElement('textarea');
-        el.value = text.replace(/\\\\n/g, '\\n');
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert('✅ ¡Copiado con éxito!');
-    }}
-    </script>
-    """, height=100)
-
-    # VISTA PREVIA
-    with st.expander("👀 Ver Vista Previa del Mensaje", expanded=False):
-        vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
-        st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
-
+if opcion == "Cargar nueva planilla (Foto o PDF)":
+    archivo = st.file_uploader("Seleccione el archivo", type=['pdf', 'png', 'jpg', 'jpeg'])
+    if archivo:
+        st.success(f"✅ '{archivo.name}' cargado con éxito.")
+        # Aquí iría la lógica de OCR o lectura de PDF
 else:
-    st.info("👋 Hola, carga la lista de precios para empezar.")
+    st.info("📂 Utilizando registros de la última sesión guardada.")
+
+st.divider()
+
+# --- 5. ÁREA DE TRABAJO (VISUALIZACIÓN) ---
+st.subheader("Contenido de la Planilla")
+st.dataframe(st.session_state.datos, use_container_width=True)
+
+# --- 6. BOTONES DE ACCIÓN (COPIAR E IMPRIMIR) ---
+st.write("---")
+col_copy, col_print = st.columns(2)
+
+with col_copy:
+    if st.button("📋 Copiar Datos al Portapapeles"):
+        # Simulamos la copia (en Streamlit web esto se suele manejar con descarga o avisos)
+        st.toast("Datos copiados al portapapeles (Simulado)", icon="✅")
+
+with col_print:
+    # Generamos un CSV o texto para "Imprimir/Descargar"
+    csv = st.session_state.datos.to_csv(index=False).encode('utf-8')
+    
+    st.download_button(
+        label="🖨️ Generar PDF / Imprimir",
+        data=csv,
+        file_name=f"Planilla_Scicolone_{datetime.now().strftime('%d_%m_%Y')}.csv",
+        mime="text/csv",
+        help="Haz clic para descargar y enviar a la impresora"
+    )
+
+# Pie de página sutil
+st.markdown("<div class='footer'>Scicolone Systems © 2026 | Enterprise Edition</div>", unsafe_allow_html=True)

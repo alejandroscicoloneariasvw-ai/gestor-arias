@@ -89,7 +89,7 @@ with st.sidebar:
 # --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
     st.markdown("## 🚗 Arias Hnos. | Presupuestos")
-    st.markdown("<p style='font-size: 14px; font-weight: bold; margin-top: -15px; color: gray;'>by Alejandro Scicolone</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: gray;'>by Alejandro Scicolone | Vigencia: {st.session_state.fecha_vigencia}</p>", unsafe_allow_html=True)
     
     mod_sel = st.selectbox("🎯 Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
@@ -101,30 +101,54 @@ if st.session_state.lista_precios:
     elif "AMAROK" in d['Modelo'] or "TAOS" in d['Modelo']: tp = "Plan 60/40"
     else: tp = "Plan 70/30"
     
-    adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
-    cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
-    
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
-           f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
-           f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
-           f"*Tipo de Plan:* {tp}\\n"
-           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\\n\\n"
-           f"{adj_f}"
-           f"*Detalle de Inversión Inicial:*\n"
-           f"* *Suscripción:* ${fmt(d['Susc'])}\\n"
-           f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
-           f"* *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.\\n\\n"
-           f"-----------------------------------------------------------\\n"
-           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})\\n"
-           f"-----------------------------------------------------------\\n\\n"
-           f"{cierre_v}")
+    adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\n\n" if d.get('Adj_Pactada') else ""
+    cierre_v = st.session_state.texto_cierre
 
-    st.write("---")
+    # VISTA PREVIA (Para que Alejandro vea el mensaje antes de copiar)
+    with st.expander("👀 VISTA PREVIA DEL PRESUPUESTO", expanded=True):
+        st.markdown(f"""
+        Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:
+        
+        🚘 *Vehículo:* **{d['Modelo']}**
+        
+        *Valor del Auto:* ${fmt(d['VM'])}
+        *Tipo de Plan:* {tp}
+        *Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)
+        
+        {adj_f}
+        *Detalle de Inversión Inicial:*
+        * *Suscripción:* ${fmt(d['Susc'])}
+        * *Cuota Nº 1:* ${fmt(d['C1'])}
+        * *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.
+        
+        -----------------------------------------------------------
+        🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})
+        -----------------------------------------------------------
+        
+        {cierre_v}
+        """)
+
+    # BOTÓN DE COPIADO
+    msj_copy = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
+                f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
+                f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
+                f"*Tipo de Plan:* {tp}\\n"
+                f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\\n\\n"
+                f"{adj_f.replace('\n', '\\n')}"
+                f"*Detalle de Inversión Inicial:*\n"
+                f"* *Suscripción:* ${fmt(d['Susc'])}\\n"
+                f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
+                f"* *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.\\n\\n"
+                f"-----------------------------------------------------------\\n"
+                f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})\\n"
+                f"-----------------------------------------------------------\\n\\n"
+                f"{cierre_v.replace('\n', '\\n')}")
+
     st.components.v1.html(f"""
     <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
     <script>
     function copyToClipboard() {{
-        const text = `{msj}`;
+        const text = `{msj_copy}`;
         const el = document.createElement('textarea');
         el.value = text.replace(/\\\\n/g, '\\n');
         document.body.appendChild(el);

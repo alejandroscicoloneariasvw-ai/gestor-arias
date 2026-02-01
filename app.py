@@ -4,11 +4,18 @@ from datetime import datetime
 # Configuración de página
 st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wide")
 
-# Estilo de letra mejorado y uniforme para la Vista Previa
+# Estilo unificado para TODA la aplicación (Modificaciones y Vista Previa)
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&display=swap');
+    
+    html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !format;
+        font-size: 15px !important;
+    }
+    
     .caja-previa {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Segoe UI', sans-serif;
         font-size: 15px;
         line-height: 1.6;
         color: #1a1a1b;
@@ -18,9 +25,10 @@ st.markdown("""
         border: 1px solid #e0e0e0;
         box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
     }
-    .negrita-resaltada {
-        font-weight: 700;
-        color: #000000;
+    
+    /* Hacer el área de texto del cierre más cómoda */
+    .stTextArea textarea {
+        background-color: #fdfdfd;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -31,19 +39,19 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# TEXTO DE CIERRE (Basado en tu Word)
+# TEXTO DE CIERRE ESTÁNDAR
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
-        "📠 **DATO CLAVE:** Podés abonar el beneficio con **Tarjeta de Crédito** para patear el pago 30 días. "
-        "Además, la Cuota Nº 2 recién te llegará a los **60 días**. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
-        "✨ **EL CAMBIO QUE MERECÉS:** Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
+        "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
+        "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
+        "✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
         "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
-        "⚠️ **IMPORTANTE:** Al momento de enviarte esto, solo me quedan **2 cupos disponibles** con estas condiciones. 💼✅\n\n"
-        "🏁 Para asegurar la bonificación del **PRIMER SERVICIO DE MANTENIMIENTO** y el **POLARIZADO DE REGALO**, enviame ahora la foto de tu "
+        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅\n\n"
+        "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
         "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL (EDICIÓN MEJORADA) ---
+# --- BARRA LATERAL (GESTIÓN Y EDICIÓN) ---
 with st.sidebar:
     st.header("📥 Gestión de Datos")
     
@@ -53,7 +61,7 @@ with st.sidebar:
         modo = "Cargar planilla nueva"
 
     if modo == "Cargar planilla nueva":
-        arc = st.file_uploader("Subir planilla (.txt)", type=['txt'])
+        arc = st.file_uploader("Subir planilla .txt", type=['txt'])
         if arc:
             cont = arc.getvalue().decode("utf-8", errors="ignore")
             lineas = cont.split("\n")
@@ -66,7 +74,6 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         m_f = p[0].strip().upper()
-                        # Adjudicación 🎈
                         adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS", "VIRTUS"]) else ""
                         temp.append({
                             "Modelo": m_f, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
@@ -80,7 +87,8 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Cierre del mensaje:", value=st.session_state.texto_cierre, height=200)
+        # Cuadro más largo para ver los 3 enunciados cómodamente
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=450)
 
         st.write("---")
         st.subheader("💰 Modificar Precios")
@@ -88,22 +96,18 @@ with st.sidebar:
         m_sel_e = st.selectbox("Seleccionar Modelo:", opcs)
         d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
-        with st.form("f_edit_final"):
+        with st.form("f_edit_precios"):
             n_nom = st.text_input("Nombre del Vehículo:", value=d_e['Modelo'])
-            col1, col2 = st.columns(2)
-            with col1:
-                n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
-                n_su = st.number_input("Suscripción ($):", value=int(d_e['Susc']))
-                n_c1 = st.number_input("Cuota 1 ($):", value=int(d_e['C1']))
-            with col2:
-                n_ad = st.number_input("Beneficio ($):", value=int(d_e['Adh']))
-                n_c2 = st.number_input("Cuotas 2-13 ($):", value=int(d_e['C2_13']))
-                n_cf = st.number_input("Cuotas 14-84 ($):", value=int(d_e['CFin']))
-            
+            n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
+            n_su = st.number_input("Suscripción ($):", value=int(d_e['Susc']))
+            n_c1 = st.number_input("Cuota 1 ($):", value=int(d_e['C1']))
+            n_ad = st.number_input("Beneficio ($):", value=int(d_e['Adh']))
+            n_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
+            n_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
             n_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
             n_adj = st.text_input("Adjudicación Pactada:", value=d_e['Adj_Pactada'])
             
-            if st.form_submit_button("💾 Guardar Cambios en Modelo"):
+            if st.form_submit_button("💾 Guardar Cambios"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == m_sel_e:
                         item.update({"Modelo": n_nom.upper(), "VM": n_vm, "Susc": n_su, "C1": n_c1, 
@@ -112,16 +116,16 @@ with st.sidebar:
 
 # --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
-    st.markdown(f"### 🚗 Arias Hnos. | Presupuesto del día")
+    st.markdown(f"### 🚗 Arias Hnos. | Gestión de Presupuestos")
     
-    mod_sel = st.selectbox("🎯 Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🎯 Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
     
-    # Lógica de Planes corregida (Tera, Nivus, T-Cross = 70/30)
+    # Lógica de Planes (Tera, Nivus, T-Cross = 70/30)
     if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
@@ -130,7 +134,6 @@ if st.session_state.lista_precios:
     adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
-    # MENSAJE FINAL CON NEGRITAS MEJORADAS
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
            f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
            f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
@@ -154,7 +157,7 @@ if st.session_state.lista_precios:
     # BOTÓN DE COPIADO
     st.write("---")
     st.components.v1.html(f"""
-    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 18px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">📋 COPIAR PARA WHATSAPP</button></div>
+    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">📋 COPIAR PARA WHATSAPP</button></div>
     <script>
     function copyToClipboard() {{
         const text = `{msj}`;
@@ -169,9 +172,8 @@ if st.session_state.lista_precios:
     </script>
     """, height=100)
 
-    # VISTA PREVIA CON NEGRITA Y LETRA UNIFORME
+    # VISTA PREVIA
     with st.expander("👀 Ver Vista Previa del Mensaje", expanded=False):
-        # Reemplazamos las etiquetas de negrita para que se vean bien en HTML
         vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
         st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
 

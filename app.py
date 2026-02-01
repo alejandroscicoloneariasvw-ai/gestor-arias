@@ -7,7 +7,7 @@ st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wi
 # Estilo unificado para TODA la aplicación (Modificaciones y Vista Previa)
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&family=Dancing+Script:wght@600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&family=Great+Vibes&display=swap');
     
     html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
@@ -15,10 +15,12 @@ st.markdown("""
     }
     
     .firma-alejandro {
-        font-family: 'Dancing Script', cursive;
-        font-size: 20px;
-        color: #555;
-        margin-bottom: 15px;
+        font-family: 'Great Vibes', cursive;
+        font-size: 32px;
+        color: #444;
+        margin-top: -15px;
+        margin-bottom: 10px;
+        font-weight: 400;
     }
     
     .caja-previa {

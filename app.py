@@ -1,33 +1,199 @@
-Basada en la planilla de *Arias Hnos.* con vigencia al *07/01/2026*, aquí tienes el detalle de los costos para el:
+import streamlit as st
+from datetime import datetime
+import os
 
-🚘 *Vehículo:* **TERA TREND MSI**
+# Configuración de página
+st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wide")
 
-*Valor del Auto:* $36.391.350
-*Tipo de Plan:* Plan 70/30
-*Plazo:* 84 Cuotas
+# Estilo para la Vista Previa uniforme
+st.markdown("""
+    <style>
+    .caja-previa {
+        font-family: 'Arial', sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-🎈 *Adjudicación Pactada en Cuota:* 8, 12 y 24
+# --- MEMORIA DE SESIÓN ---
+if 'lista_precios' not in st.session_state:
+    st.session_state.lista_precios = []
+if 'fecha_vigencia' not in st.session_state:
+    st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-*Detalle de Inversión Inicial:*
-* *Suscripción a Financiación:* $500.000
-* *Cuota Nº 1:* $490.000
-* *Costo Normal de Ingreso:* $990.000 (Ver Beneficio Exclusivo 👇)
+# CIERRE POR DEFECTO
+if 'texto_cierre' not in st.session_state:
+    st.session_state.texto_cierre = (
+        "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
+        "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
+        "✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
+        "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
+        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅\n\n"
+        "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
+        "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
+    )
 
------------------------------------------------------------
-🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **$455.000**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.
+# --- BARRA LATERAL: CONFIGURACIÓN Y EDICIÓN ---
+with st.sidebar:
+    st.header("⚙️ Configuración")
+    
+    if st.session_state.lista_precios:
+        modo = st.radio("Acción:", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True)
+    else:
+        modo = "Cargar planilla nueva"
 
-💰 *AHORRO DIRECTO HOY: $535.000*
------------------------------------------------------------
+    if modo == "Cargar planilla nueva":
+        arc = st.file_uploader("Subir archivo de precios (.txt)", type=['txt'])
+        if arc:
+            cont = arc.getvalue().decode("utf-8", errors="ignore")
+            lineas = cont.split("\n")
+            temp = []
+            for l in lineas:
+                if "/" in l and len(l.strip()) <= 10: 
+                    st.session_state.fecha_vigencia = l.strip()
+                    continue
+                p = l.split(",")
+                if len(p) >= 8:
+                    try:
+                        m_f = p[0].strip().upper()
+                        # Adjudicación inicial con GLOBO 🎈
+                        adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS", "VIRTUS"]) else ""
+                        temp.append({
+                            "Modelo": m_f, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
+                            "CFin": int(float(p[6])), "CPura": int(float(p[7])), "Adj_Pactada": adj_ini
+                        })
+                    except: continue
+            st.session_state.lista_precios = temp
+            st.rerun()
 
-*Esquema de cuotas posteriores:*
-* *Cuotas 2 a 13:* $386.000
-* *Cuotas 14 a 84:* $343.000
-* *Cuota Pura:* $303.261
+    if st.session_state.lista_precios:
+        st.write("---")
+        st.subheader("📝 Editar Cierre")
+        st.session_state.texto_cierre = st.text_area("Cierre:", value=st.session_state.texto_cierre, height=150)
 
-💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀
+        st.write("---")
+        st.subheader("💰 Editar Precios")
+        opcs = [a['Modelo'] for a in st.session_state.lista_precios]
+        m_sel_e = st.selectbox("Modelo a modificar:", opcs)
+        d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
-✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂
+        with st.form("f_edit_precios"):
+            n_nom = st.text_input("Nombre:", value=d_e['Modelo'])
+            n_vm = st.number_input("Valor Móvil", value=int(d_e['VM']))
+            n_su = st.number_input("Suscripción", value=int(d_e['Susc']))
+            n_c1 = st.number_input("Cuota 1", value=int(d_e['C1']))
+            n_ad = st.number_input("Beneficio (Abonando solo...)", value=int(d_e['Adh']))
+            n_c2 = st.number_input("Cuotas 2 a 13", value=int(d_e['C2_13']))
+            n_cf = st.number_input("Cuotas 14 a 84", value=int(d_e['CFin']))
+            n_cp = st.number_input("Cuota Pura", value=int(d_e['CPura']))
+            n_adj = st.text_input("Adjudicación:", value=d_e['Adj_Pactada'])
+            
+            if st.form_submit_button("✅ Guardar Cambios"):
+                for item in st.session_state.lista_precios:
+                    if item['Modelo'] == m_sel_e:
+                        item.update({"Modelo": n_nom.upper(), "VM": n_vm, "Susc": n_su, "C1": n_c1, 
+                                     "Adh": n_ad, "C2_13": n_c2, "CFin": n_cf, "CPura": n_cp, "Adj_Pactada": n_adj})
+                st.rerun()
 
-⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅
+# --- CUERPO PRINCIPAL ---
+if st.session_state.lista_precios:
+    st.markdown(f"### 🚗 Arias Hnos. | Vigencia: {st.session_state.fecha_vigencia}")
+    
+    mod_sel = st.selectbox("🎯 Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
+    d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
+    
+    fmt = lambda x: f"{x:,}".replace(",", ".")
+    costo_normal = d['Susc'] + d['C1']
+    ahorro_total = costo_normal - d['Adh']
+    
+    # Lógica de Planes corregida
+    if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
+    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
+    elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
+    else: tp = "Plan estándar"
+    
+    adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
+    cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
+    
+    # MENSAJE PARA COPIAR
+    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
+           f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
+           f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
+           f"*Tipo de Plan:* {tp}\\n"
+           f"*Plazo:* 84 Cuotas\\n\\n"
+           f"{adj_f}"
+           f"*Detalle de Inversión Inicial:*\\n"
+           f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n"
+           f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
+           f"* *Costo Normal de Ingreso:* ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\\n\\n"
+           f"-----------------------------------------------------------\\n"
+           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\\n\\n"
+           f"💰 *AHORRO DIRECTO HOY: ${fmt(ahorro_total)}*\\n"
+           f"-----------------------------------------------------------\\n\\n"
+           f"*Esquema de cuotas posteriores:*\\n"
+           f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\\n"
+           f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
+           f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
+           f"{cierre_v}")
 
-🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu **DNI (frente y dorso)**. ¿Te parece bien? 📝📲
+    # BOTÓN DE COPIADO
+    st.components.v1.html(f"""
+    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 18px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">📋 COPIAR TEXTO WHATSAPP</button></div>
+    <script>
+    function copyToClipboard() {{
+        const text = `{msj}`;
+        const el = document.createElement('textarea');
+        el.value = text.replace(/\\\\n/g, '\\n');
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert('✅ ¡Copiado con éxito!');
+    }}
+    </script>
+    """, height=100)
+
+    # VISTA PREVIA UNIFORME
+    with st.expander("👀 Ver Vista Previa", expanded=False):
+        st.markdown(f'<div class="caja-previa">{msj.replace("\\n", "<br>")}</div>', unsafe_allow_html=True)
+
+    # --- GESTIÓN MULTIMEDIA ---
+    st.write("---")
+    f_id = "".join([c for c in d['Modelo'] if c.isalnum()])
+    folder = os.path.join("multimedia", f_id)
+    if not os.path.exists(folder): os.makedirs(folder)
+    
+    st.subheader(f"📁 Multimedia: {d['Modelo']}")
+    with st.expander("➕ Cargar / Gestionar Archivos"):
+        up = st.file_uploader("Subir", accept_multiple_files=True, key=f"u_{f_id}")
+        if up:
+            for f in up:
+                with open(os.path.join(folder, f.name), "wb") as fd: fd.write(f.getbuffer())
+            st.rerun()
+
+    fls = os.listdir(folder)
+    if fls:
+        cols = st.columns(3)
+        for i, f in enumerate(fls):
+            pth = os.path.join(folder, f)
+            ext = f.split(".")[-1].lower()
+            with cols[i % 3]:
+                with st.container(border=True):
+                    if ext in ["jpg","png","jpeg"]: st.image(pth, use_container_width=True)
+                    else: st.write(f"📄 {f}")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        with open(pth, "rb") as d_f:
+                            st.download_button("⬇️", d_f, file_name=f, key=f"d_{f_id}_{i}", use_container_width=True)
+                    with c2:
+                        if st.button("🗑️", key=f"b_{f_id}_{i}", use_container_width=True):
+                            os.remove(pth); st.rerun()
+else:
+    st.info("👋 Hola, carga la lista de precios para empezar.")

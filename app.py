@@ -18,22 +18,19 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# EL TEXTO DE CIERRE QUE ME PASASTE (Predeterminado)
+# CIERRE PERSONALIZADO
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
         "💳 DATO CLAVE: Podés abonar el beneficio con Tarjeta de Crédito para patear el pago 30 días. "
         "Además, la Cuota Nº 2 recién te llegará a los 60 días. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
         "✨ EL CAMBIO QUE MERECÉS: Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
-        "de tu familia al ver el vehículo nuevo. Ese momento de compartirlo con amigos y disfrutar del confort que te ganaste con tu esfuerzo. "
-        "Hoy estamos a un solo paso. 🥂\n\n"
-        "⚠️ IMPORTANTE: Al momento de enviarte esto, solo me quedan 2 cupos disponibles con estas condiciones de abonar un monto "
-        "menor en la Cuota 1 y Suscripción (Ver Beneficio Exclusivo arriba). 💼✅\n\n"
+        "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
+        "⚠️ IMPORTANTE: Al momento de enviarte esto, solo me quedan 2 cupos disponibles con estas condiciones. 💼✅\n\n"
         "🎁 Para asegurar la bonificación del PRIMER SERVICIO DE MANTENIMIENTO y el POLARIZADO DE REGALO, enviame ahora la foto de tu "
-        "*DNI (frente y dorso)*. Yo reservo el cupo mientras terminás de decidirlo, así no perdés el beneficio por falta de stock y "
-        "coordinamos el pago del Beneficio Exclusivo.  Arranca tu auto y pone primera!!! 🚙🏁🏆✅ ¿Te parece bien? 📝📲"
+        "*DNI (frente y dorso)*. Yo reservo el cupo mientras terminás de decidirlo. Arranca tu auto y pone primera!!! 🚙🏁🏆✅ ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL COMPLETA (image_69d6bf.png) ---
+# --- BARRA LATERAL (Edición Completa) ---
 with st.sidebar:
     st.header("📥 Carga y Edición")
     if st.session_state.lista_precios:
@@ -54,9 +51,8 @@ with st.sidebar:
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
-                        m_final = p[0].strip().upper()
                         temp.append({
-                            "Modelo": m_final, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "Modelo": p[0].strip().upper(), "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
                             "CFin": int(float(p[6])), "CPura": int(float(p[7])), "Adj_Pactada": "8, 12 y 24"
                         })
@@ -67,7 +63,7 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Editar Cierre")
-        st.session_state.texto_cierre = st.text_area("Cierre:", value=st.session_state.texto_cierre, height=300)
+        st.session_state.texto_cierre = st.text_area("Cierre:", value=st.session_state.texto_cierre, height=250)
         
         st.write("---")
         st.subheader("💰 Editar Precios")
@@ -81,11 +77,13 @@ with st.sidebar:
             su = st.number_input("Suscripción", value=int(d_p['Susc']))
             c1 = st.number_input("Cuota 1", value=int(d_p['C1']))
             ad = st.number_input("Beneficio", value=int(d_p['Adh']))
+            c2 = st.number_input("Cuota 2-13", value=int(d_p['C2_13']))
+            cf = st.number_input("Cuota 14-84", value=int(d_p['CFin']))
             cp = st.number_input("Cuota Pura", value=int(d_p['CPura']))
-            if st.form_submit_button("✅ Actualizar"):
+            if st.form_submit_button("✅ Actualizar Todo"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == mod_a_editar:
-                        item.update({"Modelo": n_n.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "CPura": cp})
+                        item.update({"Modelo": n_n.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp})
                 st.rerun()
 
 # --- CUERPO PRINCIPAL ---
@@ -96,18 +94,22 @@ if st.session_state.lista_precios:
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
-    ahorro_total = (d['Susc'] + d['C1']) - d['Adh']
+    ingreso_total = d['Susc'] + d['C1']
+    ahorro_total = ingreso_total - d['Adh']
     
-    # 1. BOTÓN DE COPIADO (ARRIBA)
+    # 1. BOTÓN DE COPIADO (Con todos los datos de cuotas y ahorro)
     msj_copy = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
                 f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
                 f"Valor del Auto: ${fmt(d['VM'])}\\n"
                 f"Tipo de Plan: Plan 100% financiado\\n"
                 f"Plazo: 84 Cuotas (Pre-cancelables a Cuota Pura hoy ${fmt(d['CPura'])})\\n\\n"
+                f"📉 *Cronograma de Cuotas:*\\n"
+                f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\\n"
+                f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\\n\\n"
                 f"Detalle de Inversión Inicial:\\n"
                 f"* Suscripción: ${fmt(d['Susc'])}\\n"
                 f"* Cuota Nº 1: ${fmt(d['C1'])}\\n"
-                f"* Costo Total de Ingreso: ${fmt(d['Susc']+d['C1'])}.\\n\\n"
+                f"* Costo Total de Ingreso: ${fmt(ingreso_total)}.\\n\\n"
                 f"-----------------------------------------------------------\\n"
                 f"🔥 BENEFICIO EXCLUSIVO: Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ahorro_total)})\\n"
                 f"-----------------------------------------------------------\\n\\n"
@@ -124,19 +126,19 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Presupuesto copiado!');
+        alert('✅ ¡Presupuesto completo copiado!');
     }}
     </script>
     """, height=100)
 
-    # 2. VISTA PREVIA (image_5e1aa5.png)
+    # 2. VISTA PREVIA
     with st.expander("👀 VER VISTA PREVIA DEL MENSAJE", expanded=False):
-        st.write(f"Vigencia: {st.session_state.fecha_vigencia}")
-        st.write(f"Modelo: {d['Modelo']}")
-        st.write(f"Valor: ${fmt(d['VM'])}")
-        st.write(f"Suscripción + C1: ${fmt(d['Susc']+d['C1'])}")
+        st.write(f"**Vigencia:** {st.session_state.fecha_vigencia}")
+        st.write(f"**Modelo:** {d['Modelo']}")
+        st.write(f"**Cuotas 2-13:** ${fmt(d['C2_13'])} | **Cuotas 14-84:** ${fmt(d['CFin'])}")
+        st.write(f"**Ingreso Total:** ${fmt(ingreso_total)}")
+        st.write(f"🔥 **Ahorro Directo:** ${fmt(ahorro_total)}")
         st.write("---")
-        st.write(f"Beneficio: ${fmt(d['Adh'])}")
         st.write(st.session_state.texto_cierre)
 
     # 3. BIBLIOTECA MULTIMEDIA (image_5ee19d.png)

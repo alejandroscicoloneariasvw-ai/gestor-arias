@@ -1,8 +1,13 @@
 import streamlit as st
 from datetime import datetime
+import os
 
 # Configuración de página
 st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wide")
+
+# --- ASEGURAR CARPETA MULTIMEDIA ---
+if not os.path.exists("multimedia"):
+    os.makedirs("multimedia")
 
 # --- MEMORIA DE SESIÓN ---
 if 'lista_precios' not in st.session_state:
@@ -10,7 +15,7 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# TU PLANTILLA FAVORITA (Guardada por defecto)
+# TU PLANTILLA FAVORITA
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
         "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
@@ -25,10 +30,9 @@ if 'texto_cierre' not in st.session_state:
         "coordinamos el pago del Beneficio Exclusivo. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL: CARGA Y EDICIÓN ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.header("📥 Carga y Edición")
-    
     if st.session_state.lista_precios:
         modo_inicio = st.radio("¿Qué deseas hacer?", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True)
     else:
@@ -61,8 +65,8 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Editar Cierre")
-        st.session_state.texto_cierre = st.text_area("Cierre (Dato Clave en adelante):", value=st.session_state.texto_cierre, height=300)
-
+        st.session_state.texto_cierre = st.text_area("Cierre:", value=st.session_state.texto_cierre, height=250)
+        
         st.write("---")
         st.subheader("💰 Editar Precios")
         opciones_actuales = [a['Modelo'] for a in st.session_state.lista_precios]
@@ -75,13 +79,10 @@ with st.sidebar:
             su = st.number_input("Suscripción", value=int(d_p['Susc']))
             c1 = st.number_input("Cuota 1", value=int(d_p['C1']))
             ad = st.number_input("Beneficio", value=int(d_p['Adh']))
-            c2 = st.number_input("Cuota 2-13", value=int(d_p['C2_13']))
-            cf = st.number_input("Cuota Final", value=int(d_p['CFin']))
             cp = st.number_input("Cuota Pura", value=int(d_p['CPura']))
             adj_t = st.text_input("Adjudicación:", value=d_p['Adj_Pactada'])
-            
             if st.form_submit_button("✅ Actualizar"):
-                nuevo = {"Modelo": n_n.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_t}
+                nuevo = {"Modelo": n_n.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": d_p['C2_13'], "CFin": d_p['CFin'], "CPura": cp, "Adj_Pactada": adj_t}
                 st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
                 st.session_state.lista_precios.append(nuevo)
                 st.rerun()
@@ -104,29 +105,67 @@ if st.session_state.lista_precios:
     adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\n\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre
 
-    # VISTA PREVIA (Para que Alejandro vea el mensaje antes de copiar)
-    with st.expander("👀 VISTA PREVIA DEL PRESUPUESTO", expanded=True):
-        st.markdown(f"""
-        Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:
+    col1, col2 = st.columns([1.5, 1])
+
+    with col1:
+        with st.expander("👀 VISTA PREVIA DEL PRESUPUESTO", expanded=True):
+            st.markdown(f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle para el:\n\n"
+                        f"🚘 *Vehículo:* **{d['Modelo']}**\n\n"
+                        f"*Valor del Auto:* ${fmt(d['VM'])}\n"
+                        f"*Tipo de Plan:* {tp}\n"
+                        f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\n\n"
+                        f"{adj_f}"
+                        f"*Detalle de Inversión Inicial:*\n"
+                        f"* *Suscripción:* ${fmt(d['Susc'])}\n"
+                        f"* *Cuota Nº 1:* ${fmt(d['C1'])}\n"
+                        f"* *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.\n\n"
+                        f"-----------------------------------------------------------\n"
+                        f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})\n"
+                        f"-----------------------------------------------------------\n\n"
+                        f"{cierre_v}")
+
+    with col2:
+        st.subheader("📁 Gestor Multimedia")
         
-        🚘 *Vehículo:* **{d['Modelo']}**
-        
-        *Valor del Auto:* ${fmt(d['VM'])}
-        *Tipo de Plan:* {tp}
-        *Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)
-        
-        {adj_f}
-        *Detalle de Inversión Inicial:*
-        * *Suscripción:* ${fmt(d['Susc'])}
-        * *Cuota Nº 1:* ${fmt(d['C1'])}
-        * *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.
-        
-        -----------------------------------------------------------
-        🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})
-        -----------------------------------------------------------
-        
-        {cierre_v}
-        """)
+        # Crear subcarpeta específica para el modelo para que sea ordenado
+        modelo_folder = os.path.join("multimedia", d['Modelo'].replace(" ", "_"))
+        if not os.path.exists(modelo_folder):
+            os.makedirs(modelo_folder)
+
+        # 1. SUBIR ARCHIVOS
+        uploaded_files = st.file_uploader("Cargar Fotos/Videos para este auto", accept_multiple_files=True)
+        if uploaded_files:
+            for uploaded_file in uploaded_files:
+                file_path = os.path.join(modelo_folder, uploaded_file.name)
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+            st.success("¡Archivos guardados!")
+            st.rerun()
+
+        # 2. LISTAR Y GESTIONAR ARCHIVOS EXISTENTES
+        files = os.listdir(modelo_folder)
+        if files:
+            for file in files:
+                f_path = os.path.join(modelo_folder, file)
+                ext = file.split(".")[-1].lower()
+                
+                with st.container(border=True):
+                    st.write(f"📄 **{file}**")
+                    if ext in ["jpg", "jpeg", "png"]:
+                        st.image(f_path, width=150)
+                    elif ext in ["mp4", "mov"]:
+                        st.video(f_path)
+                    
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        with open(f_path, "rb") as f:
+                            st.download_button("⬇️ Bajar", f, file_name=file, key=f"dl_{file}")
+                    with c2:
+                        if st.button("🗑️ Borrar", key=f"del_{file}"):
+                            os.remove(f_path)
+                            st.rerun()
+        else:
+            st.info("No hay archivos cargados para este modelo.")
 
     # BOTÓN DE COPIADO
     msj_copy = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
@@ -144,8 +183,9 @@ if st.session_state.lista_precios:
                 f"-----------------------------------------------------------\\n\\n"
                 f"{cierre_v.replace('\n', '\\n')}")
 
+    st.write("---")
     st.components.v1.html(f"""
-    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
+    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR TEXTO WHATSAPP</button></div>
     <script>
     function copyToClipboard() {{
         const text = `{msj_copy}`;
@@ -155,7 +195,7 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Copiado!');
+        alert('✅ ¡Texto Copiado!');
     }}
     </script>
     """, height=100)

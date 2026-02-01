@@ -10,6 +10,7 @@ if not os.path.exists("multimedia"):
     os.makedirs("multimedia")
 
 def limpiar_nombre(texto):
+    # Elimina espacios y símbolos para que las carpetas no se mezclen
     return "".join([c for c in texto if c.isalnum()]).strip()
 
 # --- MEMORIA DE SESIÓN ---
@@ -18,18 +19,17 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# PLANTILLA DE CIERRE POR DEFECTO
+# PLANTILLA DE CIERRE (Restaurada)
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
         "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
         "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
         "✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
         "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
-        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅\n\n"
-        "🎁 Para asegurar la bonificación del *PRIMER SERVICIO*, enviame ahora la foto de tu **DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
+        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅"
     )
 
-# --- BARRA LATERAL COMPLETA ---
+# --- BARRA LATERAL COMPLETA (Restaurada según imagen_69d6bf.png) ---
 with st.sidebar:
     st.header("📥 Carga y Edición")
     if st.session_state.lista_precios:
@@ -63,7 +63,7 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Editar Cierre")
-        st.session_state.texto_cierre = st.text_area("Cierre:", value=st.session_state.texto_cierre, height=200)
+        st.session_state.texto_cierre = st.text_area("Cierre:", value=st.session_state.texto_cierre, height=250)
         
         st.write("---")
         st.subheader("💰 Editar Precios")
@@ -77,7 +77,7 @@ with st.sidebar:
             su = st.number_input("Suscripción", value=int(d_p['Susc']))
             c1 = st.number_input("Cuota 1", value=int(d_p['C1']))
             ad = st.number_input("Beneficio", value=int(d_p['Adh']))
-            if st.form_submit_button("✅ Actualizar Precios"):
+            if st.form_submit_button("✅ Actualizar"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == mod_a_editar:
                         item.update({"Modelo": n_n.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad})
@@ -85,7 +85,7 @@ with st.sidebar:
 
 # --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
-    st.markdown(f"## 🚗 Arias Hnos. | Vigencia: {st.session_state.fecha_vigencia}")
+    st.markdown(f"### 🚗 Arias Hnos. | Vigencia: {st.session_state.fecha_vigencia}")
     
     mod_sel = st.selectbox("🎯 Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
@@ -94,8 +94,7 @@ if st.session_state.lista_precios:
     ah = (d['Susc'] + d['C1']) - d['Adh']
     
     # 1. BOTÓN DE COPIADO (ARRIBA)
-    msj_copy = (f"Basada en la planilla al *{st.session_state.fecha_vigencia}*\\n\\n"
-                f"🚘 *Vehículo:* **{d['Modelo']}**\\n"
+    msj_copy = (f"🚘 *Vehículo:* **{d['Modelo']}**\\n"
                 f"*Valor:* ${fmt(d['VM'])}\\n\\n"
                 f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}** ya cubrís el ingreso.\\n\\n"
                 f"{st.session_state.texto_cierre.replace('\n', '\\n')}")
@@ -111,16 +110,21 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Texto Copiado!');
+        alert('✅ ¡Texto del presupuesto copiado!');
     }}
     </script>
-    """, height=90)
+    """, height=100)
 
-    # 2. VISTA PREVIA (Cerrada por defecto y uniforme)
+    # 2. VISTA PREVIA (Restaurada según imagen_5e1aa5.png)
     with st.expander("👀 VER VISTA PREVIA DEL MENSAJE", expanded=False):
-        st.text(f"Vigencia: {st.session_state.fecha_vigencia}\nModelo: {d['Modelo']}\nValor: ${fmt(d['VM'])}\n\nBeneficio: ${fmt(d['Adh'])}\n\n{st.session_state.texto_cierre}")
+        st.write(f"**Vigencia:** {st.session_state.fecha_vigencia}")
+        st.write(f"**Modelo:** {d['Modelo']}")
+        st.write(f"**Valor:** ${fmt(d['VM'])}")
+        st.write("---")
+        st.write(f"**Beneficio:** ${fmt(d['Adh'])}")
+        st.write(st.session_state.texto_cierre)
 
-    # 3. BIBLIOTECA MULTIMEDIA (ABAJO)
+    # 3. BIBLIOTECA MULTIMEDIA (Restaurada y Limpia)
     st.write("---")
     f_id = limpiar_nombre(d['Modelo'])
     modelo_folder = os.path.join("multimedia", f_id)
@@ -129,7 +133,7 @@ if st.session_state.lista_precios:
     st.subheader(f"📁 Multimedia: {d['Modelo']}")
     
     with st.expander("➕ Cargar / Gestionar Archivos"):
-        up = st.file_uploader("Seleccionar archivos", accept_multiple_files=True, key=f"up_{f_id}")
+        up = st.file_uploader("Subir multimedia", accept_multiple_files=True, key=f"up_{f_id}")
         if up:
             for f in up:
                 with open(os.path.join(modelo_folder, f.name), "wb") as f_dest:
@@ -144,10 +148,15 @@ if st.session_state.lista_precios:
             ext = file.split(".")[-1].lower()
             with cols[i % 3]:
                 with st.container(border=True):
-                    if ext in ["jpg", "png", "jpeg"]: st.image(f_p, use_container_width=True)
-                    elif ext in ["mp4", "mov"]: st.video(f_p)
-                    else: st.info(f"📄 Archivo: {file}")
+                    # Identificar tipo de archivo para la vista
+                    if ext in ["jpg", "png", "jpeg"]: 
+                        st.image(f_p, use_container_width=True)
+                    elif ext in ["mp4", "mov"]: 
+                        st.video(f_p)
+                    else: 
+                        st.info(f"📄 Archivo: {file}")
                     
+                    # Botones con texto claro (Soluciona el cuadrado con cruz)
                     c1, c2 = st.columns(2)
                     with c1:
                         with open(f_p, "rb") as f_file:
@@ -157,6 +166,6 @@ if st.session_state.lista_precios:
                             os.remove(f_p)
                             st.rerun()
     else:
-        st.info("No hay multimedia para este modelo.")
+        st.info("Sin archivos para este modelo.")
 else:
     st.info("👋 Hola, cargá la planilla para empezar.")

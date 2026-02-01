@@ -7,20 +7,22 @@ st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wi
 # Estilo unificado para TODA la aplicación (Modificaciones y Vista Previa)
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&family=Great+Vibes&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:ital,wght@0,400;0,700;1,300&display=swap');
     
     html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
         font-size: 15px !important;
     }
     
-    .firma-alejandro {
-        font-family: 'Great Vibes', cursive;
-        font-size: 32px;
-        color: #444;
+    .firma-scicolone {
+        font-family: 'Segoe UI', sans-serif;
+        font-style: italic;
+        font-weight: 300;
+        font-size: 14px;
+        color: #6c757d;
         margin-top: -15px;
-        margin-bottom: 10px;
-        font-weight: 400;
+        margin-bottom: 20px;
+        letter-spacing: 0.5px;
     }
     
     .caja-previa {
@@ -125,7 +127,7 @@ with st.sidebar:
 # --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
     st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
-    st.markdown('<div class="firma-alejandro">by Alejandro Scicolone</div>', unsafe_allow_html=True)
+    st.markdown('<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
     
     mod_sel = st.selectbox("🎯 Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
@@ -134,7 +136,7 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
     
-    # Lógica de Planes (Tera, Nivus, T-Cross = 70/30)
+    # Lógica de Planes
     if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"

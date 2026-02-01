@@ -37,20 +37,20 @@ st.markdown("""
         box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
     }
     
-    .stTextArea textarea { background-color: #fdfdfd; }
-    
-    /* Estilo de carpetas multimedia */
-    .folder-box {
-        border-left: 5px solid #007bff;
-        background-color: #f8f9fa;
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 0 8px 8px 0;
+    /* Estilo para las filas de archivos */
+    .file-row {
+        display: flex;
+        align-items: center;
+        background: #fdfdfd;
+        padding: 8px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        border: 1px solid #eee;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- MEMORIA DE SESIÓN (BLINDADO) ---
+# --- MEMORIA DE SESIÓN ---
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
@@ -76,7 +76,7 @@ if 'texto_cierre' not in st.session_state:
         "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL (BLINDADO) ---
+# --- BARRA LATERAL (LÓGICA BLINDADA) ---
 with st.sidebar:
     st.header("📥 Gestión de Datos")
     if st.session_state.lista_precios:
@@ -113,31 +113,7 @@ with st.sidebar:
         st.subheader("📝 Modificar Cierre")
         st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=450)
 
-        st.write("---")
-        st.subheader("💰 Modificar Precios")
-        opcs = [a['Modelo'] for a in st.session_state.lista_precios]
-        m_sel_e = st.selectbox("Seleccionar Modelo:", opcs)
-        d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
-
-        with st.form("f_edit_precios"):
-            n_nom = st.text_input("Nombre del Vehículo:", value=d_e['Modelo'])
-            n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
-            n_su = st.number_input("Suscripción ($):", value=int(d_e['Susc']))
-            n_c1 = st.number_input("Cuota 1 ($):", value=int(d_e['C1']))
-            n_ad = st.number_input("Beneficio ($):", value=int(d_e['Adh']))
-            n_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
-            n_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
-            n_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
-            n_adj = st.text_input("Adjudicación Pactada:", value=d_e['Adj_Pactada'])
-            
-            if st.form_submit_button("💾 Guardar Cambios"):
-                for item in st.session_state.lista_precios:
-                    if item['Modelo'] == m_sel_e:
-                        item.update({"Modelo": n_nom.upper(), "VM": n_vm, "Susc": n_su, "C1": n_c1, 
-                                     "Adh": n_ad, "C2_13": n_c2, "CFin": n_cf, "CPura": n_cp, "Adj_Pactada": n_adj})
-                st.rerun()
-
-# --- CUERPO PRINCIPAL (BLINDADO) ---
+# --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
     st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
     st.markdown('<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
@@ -177,7 +153,6 @@ if st.session_state.lista_precios:
             f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
             f"{cierre_v}")
 
-    # BOTÓN DE COPIADO
     st.write("---")
     st.components.v1.html(f"""
     <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">📋 COPIAR PARA WHATSAPP</button></div>
@@ -195,53 +170,54 @@ if st.session_state.lista_precios:
     </script>
     """, height=100)
 
-    # VISTA PREVIA
     with st.expander("👀 Ver Vista Previa del Mensaje", expanded=False):
         vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
         st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
 
-    # --- NUEVA SECCIÓN: ARCHIVOS MULTIMEDIA (DINÁMICA) ---
+    # --- ARCHIVOS MULTIMEDIA ---
     st.write("---")
     st.subheader("📂 Archivos Multimedia")
     
-    # 1. Función para agregar carpeta nueva
     with st.expander("🆕 Crear Carpeta de Vehículo Nuevo"):
-        nombre_nueva_carpeta = st.text_input("Ingresa el nombre del vehículo para la carpeta:").upper()
+        nombre_nc = st.text_input("Nombre del vehículo:").upper()
         if st.button("Confirmar Creación"):
-            if nombre_nueva_carpeta and nombre_nueva_carpeta not in st.session_state.carpetas_media:
-                st.session_state.carpetas_media[nombre_nueva_carpeta] = []
-                st.success(f"Carpeta '{nombre_nueva_carpeta}' creada.")
+            if nombre_nc and nombre_nc not in st.session_state.carpetas_media:
+                st.session_state.carpetas_media[nombre_nc] = []
                 st.rerun()
 
-    # 2. Despliegue de carpetas (Las fijas + las nuevas)
     for carpeta in st.session_state.carpetas_media.keys():
         with st.expander(f"📁 {carpeta}"):
-            # Subida de archivos
-            archivos_subidos = st.file_uploader(f"Cargar fotos/videos/PDF para {carpeta}", 
-                                               accept_multiple_files=True, 
-                                               key=f"up_{carpeta}")
-            
-            if archivos_subidos:
-                for arc in archivos_subidos:
+            subida = st.file_uploader(f"Cargar en {carpeta}", accept_multiple_files=True, key=f"up_{carpeta}")
+            if subida:
+                for arc in subida:
                     if arc.name not in [x['name'] for x in st.session_state.carpetas_media[carpeta]]:
                         st.session_state.carpetas_media[carpeta].append({
-                            "name": arc.name, 
-                            "data": arc.getvalue(),
-                            "type": arc.type
+                            "name": arc.name, "data": arc.getvalue(), "type": arc.type
                         })
-            
-            # Mostrar lista de archivos en la carpeta
+
             if st.session_state.carpetas_media[carpeta]:
-                st.write("**Documentos en carpeta:**")
                 for i, doc in enumerate(st.session_state.carpetas_media[carpeta]):
-                    c1, c2, c3 = st.columns([4, 1, 1])
-                    c1.text(f"• {doc['name']}")
-                    c2.download_button("Descargar", doc['data'], file_name=doc['name'], key=f"dl_{carpeta}_{i}")
-                    if c3.button("🗑️", key=f"del_{carpeta}_{i}"):
-                        st.session_state.carpetas_media[carpeta].pop(i)
-                        st.rerun()
+                    with st.container():
+                        c1, c2, c3, c4 = st.columns([1, 4, 1, 1])
+                        
+                        # 1. Miniatura si es imagen
+                        if "image" in doc['type']:
+                            c1.image(doc['data'], width=60)
+                        else:
+                            c1.write("📄")
+                        
+                        # 2. Nombre
+                        c2.text(doc['name'])
+                        
+                        # 3. Descargar
+                        c3.download_button("📩", doc['data'], file_name=doc['name'], key=f"dl_{carpeta}_{i}", help="Descargar para WhatsApp")
+                        
+                        # 4. Eliminar (El botón del tacho)
+                        if c4.button("🗑️", key=f"del_{carpeta}_{i}", help="Eliminar archivo"):
+                            st.session_state.carpetas_media[carpeta].pop(i)
+                            st.rerun()
             else:
-                st.caption("Esta carpeta está vacía.")
+                st.caption("Carpeta vacía.")
 
 else:
     st.info("👋 Hola, carga la lista de precios para empezar.")

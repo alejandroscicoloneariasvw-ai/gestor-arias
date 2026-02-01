@@ -30,7 +30,7 @@ if 'texto_cierre' not in st.session_state:
         "coordinamos el pago del Beneficio Exclusivo. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL: CARGA Y EDICIÓN ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.header("📥 Carga y Edición")
     if st.session_state.lista_precios:
@@ -105,65 +105,15 @@ if st.session_state.lista_precios:
     adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\n\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre
 
-    # SECCIÓN MULTIMEDIA INDEPENDIENTE
-    st.write("---")
-    st.subheader(f"📁 Biblioteca Multimedia: {d['Modelo']}")
-    
-    modelo_folder = os.path.join("multimedia", d['Modelo'].replace(" ", "_"))
-    if not os.path.exists(modelo_folder): os.makedirs(modelo_folder)
+    # 1. SECCIÓN DE TEXTO Y COPIADO (ARRIBA)
+    with st.expander("👀 VER TEXTO DEL MENSAJE (VISTA PREVIA)", expanded=False):
+        texto_preview = (f"Vigencia: {st.session_state.fecha_vigencia}\n"
+                         f"Vehículo: {d['Modelo']}\n"
+                         f"Valor: ${fmt(d['VM'])}\n"
+                         f"Ingreso Especial: ${fmt(d['Adh'])}\n\n"
+                         f"{cierre_v}")
+        st.text(texto_preview)
 
-    # Carga de archivos
-    with st.expander("➕ Cargar archivos a este modelo"):
-        uploaded_files = st.file_uploader("Arrastrá fotos, videos o PDFs", accept_multiple_files=True)
-        if uploaded_files:
-            for uf in uploaded_files:
-                with open(os.path.join(modelo_folder, uf.name), "wb") as f: f.write(uf.getbuffer())
-            st.success("¡Guardado!")
-            st.rerun()
-
-    # Visualización de archivos en columnas
-    files = os.listdir(modelo_folder)
-    if files:
-        cols = st.columns(3) # Tres archivos por fila
-        for i, file in enumerate(files):
-            f_p = os.path.join(modelo_folder, file)
-            ext = file.split(".")[-1].lower()
-            
-            with cols[i % 3]:
-                with st.container(border=True):
-                    if ext in ["jpg", "png", "jpeg"]:
-                        st.image(f_p, use_container_width=True)
-                    elif ext in ["mp4", "mov"]:
-                        st.video(f_p)
-                    else:
-                        st.write(f"📕 **{file}**")
-                    
-                    st.write(f"📄 {file}")
-                    c_down, c_del = st.columns([3, 1])
-                    with c_down:
-                        with open(f_p, "rb") as f:
-                            st.download_button("⬇️ Descargar", f, file_name=file, key=f"dl_{file}", use_container_width=True)
-                    with c_del:
-                        if st.button("🗑️", key=f"del_{file}"):
-                            os.remove(f_p)
-                            st.rerun()
-    else:
-        st.info("No hay archivos cargados para este modelo.")
-
-    # SECCIÓN PRESUPUESTO
-    st.write("---")
-    col_text, col_copy = st.columns([2, 1])
-    
-    with col_text:
-        with st.expander("👀 VER TEXTO DEL PRESUPUESTO", expanded=False):
-            texto_limpio = (f"Vigencia: {st.session_state.fecha_vigencia}\n"
-                            f"Vehículo: {d['Modelo']}\n"
-                            f"Valor: ${fmt(d['VM'])}\n"
-                            f"Beneficio: Pagando ${fmt(d['Adh'])} cubrís el ingreso.\n\n"
-                            f"{cierre_v}")
-            st.text(texto_limpio)
-
-    # BOTÓN DE COPIADO (Independiente)
     msj_copy = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
                 f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
                 f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
@@ -180,7 +130,7 @@ if st.session_state.lista_precios:
                 f"{cierre_v.replace('\n', '\\n')}")
 
     st.components.v1.html(f"""
-    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 18px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR TEXTO WHATSAPP</button></div>
+    <div style="text-align: center; margin-bottom: 20px;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 20px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">📋 COPIAR TEXTO WHATSAPP</button></div>
     <script>
     function copyToClipboard() {{
         const text = `{msj_copy}`;
@@ -190,9 +140,50 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Texto Copiado!');
+        alert('✅ ¡Texto del presupuesto copiado!');
     }}
     </script>
     """, height=100)
+
+    # 2. SECCIÓN MULTIMEDIA (ABAJO)
+    st.write("---")
+    st.subheader(f"📁 Biblioteca Multimedia: {d['Modelo']}")
+    
+    modelo_folder = os.path.join("multimedia", d['Modelo'].replace(" ", "_"))
+    if not os.path.exists(modelo_folder): os.makedirs(modelo_folder)
+
+    with st.expander("➕ Cargar archivos nuevos"):
+        uploaded_files = st.file_uploader("Arrastrá archivos para este modelo", accept_multiple_files=True)
+        if uploaded_files:
+            for uf in uploaded_files:
+                with open(os.path.join(modelo_folder, uf.name), "wb") as f: f.write(uf.getbuffer())
+            st.rerun()
+
+    files = os.listdir(modelo_folder)
+    if files:
+        cols = st.columns(4) # 4 archivos por fila para que ocupe menos verticalmente
+        for i, file in enumerate(files):
+            f_p = os.path.join(modelo_folder, file)
+            ext = file.split(".")[-1].lower()
+            
+            with cols[i % 4]:
+                with st.container(border=True):
+                    if ext in ["jpg", "png", "jpeg"]:
+                        st.image(f_p, use_container_width=True)
+                    elif ext in ["mp4", "mov"]:
+                        st.video(f_p)
+                    else:
+                        st.write(f"📄 **{file}**")
+                    
+                    c_down, c_del = st.columns([3, 1])
+                    with c_down:
+                        with open(f_p, "rb") as f:
+                            st.download_button("⬇️ Descargar", f, file_name=file, key=f"dl_{file}", use_container_width=True)
+                    with c_del:
+                        if st.button("🗑️", key=f"del_{file}"):
+                            os.remove(f_p)
+                            st.rerun()
+    else:
+        st.info("No hay multimedia cargada.")
 else:
     st.info("👋 Hola Alejandro, cargá la planilla para empezar.")

@@ -10,7 +10,7 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# ESTA ES LA PLANTILLA QUE TE ENCANTA (Guardada como base)
+# TU PLANTILLA DE CIERRE
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
         "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
@@ -29,7 +29,6 @@ if 'texto_cierre' not in st.session_state:
 with st.sidebar:
     st.header("📥 Carga y Edición")
     
-    # Pregunta si quiere cargar nueva o usar guardada
     if st.session_state.lista_precios:
         modo_inicio = st.radio("¿Qué deseas hacer?", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True)
     else:
@@ -49,7 +48,7 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         m_final = p[0].strip().upper()
-                        adj_ini = "8, 12 y 24" if any(x in m_final for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
+                        adj_ini = "8, 12 y 24" if any(x in m_final for x in ["TERA", "NIVUS", "T-CROSS", "VIRTUS"]) else ""
                         temp.append({
                             "Modelo": m_final, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
@@ -62,7 +61,6 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Editar Cierre")
-        # Cuadro para modificar desde "Dato Clave" hacia abajo
         st.session_state.texto_cierre = st.text_area("Cierre del mensaje:", value=st.session_state.texto_cierre, height=300)
 
         st.write("---")
@@ -77,13 +75,14 @@ with st.sidebar:
             su = st.number_input("Suscripción", value=int(datos_previos['Susc']))
             c1 = st.number_input("Cuota 1", value=int(datos_previos['C1']))
             ad = st.number_input("Beneficio", value=int(datos_previos['Adh']))
+            c2_edit = st.number_input("Cuota 2-13", value=int(datos_previos['C2_13']))
+            cf_edit = st.number_input("Cuota 14-84", value=int(datos_previos['CFin']))
             cp = st.number_input("Cuota Pura", value=int(datos_previos['CPura']))
             adj_text = st.text_input("Adjudicación:", value=datos_previos['Adj_Pactada'])
             
             if st.form_submit_button("✅ Actualizar"):
                 nuevo = {"Modelo": n_nombre.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, 
-                         "C2_13": datos_previos['C2_13'], "CFin": datos_previos['CFin'], 
-                         "CPura": cp, "Adj_Pactada": adj_text}
+                         "C2_13": c2_edit, "CFin": cf_edit, "CPura": cp, "Adj_Pactada": adj_text}
                 st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
                 st.session_state.lista_precios.append(nuevo)
                 st.rerun()
@@ -97,32 +96,37 @@ if st.session_state.lista_precios:
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
-    ah = (d['Susc'] + d['C1']) - d['Adh']
+    costo_normal = d['Susc'] + d['C1']
+    ahorro_total = costo_normal - d['Adh']
     
-    if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
+    if any(x in d['Modelo'] for x in ["TERA", "VIRTUS", "NIVUS", "T-CROSS"]): tp = "Plan 100% financiado"
     elif "AMAROK" in d['Modelo'] or "TAOS" in d['Modelo']: tp = "Plan 60/40"
     else: tp = "Plan 70/30"
     
-    adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
+    adj_f = f"📍 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
            f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
            f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
            f"*Tipo de Plan:* {tp}\\n"
-           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\\n\\n"
+           f"*Plazo:* 84 Cuotas\\n\\n"
            f"{adj_f}"
-           f"*Detalle de Inversión Inicial:*\n"
-           f"* *Suscripción:* ${fmt(d['Susc'])}\\n"
+           f"*Detalle de Inversión Inicial:*\\n"
+           f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n"
            f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
-           f"* *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.\\n\\n"
+           f"* *Costo Normal de Ingreso:* ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\\n\\n"
            f"-----------------------------------------------------------\\n"
-           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})\\n"
+           f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\\n\\n"
+           f"💰 *AHORRO DIRECTO HOY: ${fmt(ahorro_total)}*\\n"
            f"-----------------------------------------------------------\\n\\n"
+           f"*Esquema de cuotas posteriores:*\\n"
+           f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\\n"
+           f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
+           f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
            f"{cierre_v}")
 
     st.write("---")
-    # Botón azul de copiado definitivo
     st.components.v1.html(f"""
     <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">📋 COPIAR PARA WHATSAPP</button></div>
     <script>
@@ -138,3 +142,5 @@ if st.session_state.lista_precios:
     }}
     </script>
     """, height=100)
+else:
+    st.info("👋 Hola, carga la lista de precios para empezar.")

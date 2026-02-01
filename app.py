@@ -38,6 +38,12 @@ st.markdown("""
         border: 1px solid #e0e0e0;
         box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
     }
+
+    /* Estilo para que el área de texto sea más clara */
+    .stTextArea textarea {
+        border: 1px solid #007bff33 !important;
+        border-radius: 8px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -67,7 +73,7 @@ if 'texto_cierre' not in st.session_state:
         "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL: GESTIÓN DE DATOS ---
+# --- BARRA LATERAL: GESTIÓN Y EDICIÓN ---
 with st.sidebar:
     st.header("📥 Gestión de Datos")
     if st.session_state.lista_precios:
@@ -102,102 +108,20 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=300)
+        # --- CAMBIO: ALTURA ALARGADA A 500 PX ---
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=500)
 
-# --- CUERPO PRINCIPAL ---
-if st.session_state.lista_precios:
-    st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
-    st.markdown('<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
-    
-    mod_sel = st.selectbox("🎯 Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
-    d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
-    
-    fmt = lambda x: f"{x:,}".replace(",", ".")
-    costo_normal = d['Susc'] + d['C1']
-    ahorro_total = costo_normal - d['Adh']
-    
-    if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
-    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
-    elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
-    else: tp = "Plan estándar"
-    
-    adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
-    cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
-    
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
-            f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
-            f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
-            f"**Tipo de Plan:** {tp}\\n"
-            f"**Plazo:** 84 Cuotas\\n\\n"
-            f"{adj_f}"
-            f"**Detalle de Inversión Inicial:**\\n"
-            f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n"
-            f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
-            f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\\n\\n"
-            f"-----------------------------------------------------------\\n"
-            f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\\n\\n"
-            f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\\n"
-            f"-----------------------------------------------------------\\n\\n"
-            f"**Esquema de cuotas posteriores:**\\n"
-            f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\\n"
-            f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
-            f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
-            f"{cierre_v}")
+        st.write("---")
+        st.subheader("💰 Modificar Precios")
+        opcs = [a['Modelo'] for a in st.session_state.lista_precios]
+        m_sel_e = st.selectbox("Seleccionar Modelo para editar:", opcs)
+        d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
-    st.components.v1.html(f"""
-    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
-    <script>
-    function copyToClipboard() {{
-        const text = `{msj}`;
-        const el = document.createElement('textarea');
-        el.value = text.replace(/\\\\n/g, '\\n');
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert('✅ ¡Copiado con éxito!');
-    }}
-    </script>
-    """, height=100)
-
-    with st.expander("👀 Ver Vista Previa del Mensaje"):
-        vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
-        st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
-
-    # --- ARCHIVOS MULTIMEDIA (NUEVA FUNCIÓN) ---
-    st.write("---")
-    st.subheader("📂 Archivos Multimedia")
-    
-    with st.expander("🆕 Crear Carpeta Nueva"):
-        n_c = st.text_input("Nombre del vehículo:").upper()
-        if st.button("Confirmar Carpeta"):
-            if n_c: st.session_state.carpetas_media[n_c] = []; st.rerun()
-
-    for carpeta in st.session_state.carpetas_media.keys():
-        with st.expander(f"📁 {carpeta}"):
-            subida = st.file_uploader(f"Subir a {carpeta}", accept_multiple_files=True, key=f"up_{carpeta}")
-            if subida:
-                for arc in subida:
-                    if arc.name not in [x['name'] for x in st.session_state.carpetas_media[carpeta]]:
-                        st.session_state.carpetas_media[carpeta].append({"name": arc.name, "data": arc.getvalue(), "type": arc.type})
-
-            if st.session_state.carpetas_media[carpeta]:
-                seleccionados = []
-                for i, doc in enumerate(st.session_state.carpetas_media[carpeta]):
-                    c_sel, c_img, c_txt, c_del = st.columns([0.5, 1, 4, 1])
-                    if c_sel.checkbox("", key=f"chk_{carpeta}_{i}"):
-                        seleccionados.append(doc)
-                    if "image" in doc['type']: c_img.image(doc['data'], width=60)
-                    else: c_img.write("📄")
-                    c_txt.text(doc['name'])
-                    if c_del.button("🗑️", key=f"del_{carpeta}_{i}"):
-                        st.session_state.carpetas_media[carpeta].pop(i)
-                        st.rerun()
-                
-                if seleccionados:
-                    buf = io.BytesIO()
-                    with zipfile.ZipFile(buf, "w") as fzip:
-                        for s in seleccionados: fzip.writestr(s['name'], s['data'])
-                    st.download_button(f"📥 Descargar {len(seleccionados)} archivos marcados", buf.getvalue(), f"{carpeta}.zip", "application/zip", use_container_width=True)
-else:
-    st.info("👋 Hola, carga la lista de precios para empezar.")
+        with st.form("f_edit_precios"):
+            n_nom = st.text_input("Nombre:", value=d_e['Modelo'])
+            n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
+            n_su = st.number_input("Suscripción ($):", value=int(d_e['Susc']))
+            n_c1 = st.number_input("Cuota 1 ($):", value=int(d_e['C1']))
+            n_ad = st.number_input("Beneficio ($):", value=int(d_e['Adh']))
+            n_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
+            n_cf = st.number_input("Cuotas 14 a 8

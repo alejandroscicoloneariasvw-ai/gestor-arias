@@ -15,7 +15,7 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# PLANTILLA BASE (Se mantiene intacta)
+# PLANTILLA BASE
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
         "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
@@ -30,7 +30,7 @@ if 'texto_cierre' not in st.session_state:
         "coordinamos el pago del Beneficio Exclusivo. ¿Te parece bien? 📝📲"
     )
 
-# --- BARRA LATERAL ---
+# --- BARRA LATERAL: CARGA Y EDICIÓN ---
 with st.sidebar:
     st.header("📥 Carga y Edición")
     if st.session_state.lista_precios:
@@ -105,45 +105,65 @@ if st.session_state.lista_precios:
     adj_f = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\n\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre
 
-    col1, col2 = st.columns([1.5, 1])
+    # SECCIÓN MULTIMEDIA INDEPENDIENTE
+    st.write("---")
+    st.subheader(f"📁 Biblioteca Multimedia: {d['Modelo']}")
+    
+    modelo_folder = os.path.join("multimedia", d['Modelo'].replace(" ", "_"))
+    if not os.path.exists(modelo_folder): os.makedirs(modelo_folder)
 
-    with col1:
-        # VISTA PREVIA CERRADA POR DEFECTO
-        with st.expander("👀 VER MENSAJE PARA EL CLIENTE", expanded=False):
-            texto_limpio = (f"Vigencia: {st.session_state.fecha_vigencia}\n"
-                            f"Vehículo: {d['Modelo']}\n"
-                            f"Valor: ${fmt(d['VM'])}\n"
-                            f"Plan: {tp}\n"
-                            f"Cuota Pura: ${fmt(d['CPura'])}\n\n"
-                            f"Beneficio: Pagando ${fmt(d['Adh'])} cubrís el ingreso.\n\n"
-                            f"Cierre: {cierre_v}")
-            st.text(texto_limpio)
-
-    with col2:
-        st.subheader("📁 Multimedia")
-        modelo_folder = os.path.join("multimedia", d['Modelo'].replace(" ", "_"))
-        if not os.path.exists(modelo_folder): os.makedirs(modelo_folder)
-
-        uploaded_files = st.file_uploader("Cargar archivos", accept_multiple_files=True, label_visibility="collapsed")
+    # Carga de archivos
+    with st.expander("➕ Cargar archivos a este modelo"):
+        uploaded_files = st.file_uploader("Arrastrá fotos, videos o PDFs", accept_multiple_files=True)
         if uploaded_files:
             for uf in uploaded_files:
                 with open(os.path.join(modelo_folder, uf.name), "wb") as f: f.write(uf.getbuffer())
+            st.success("¡Guardado!")
             st.rerun()
 
-        files = os.listdir(modelo_folder)
-        for file in files:
+    # Visualización de archivos en columnas
+    files = os.listdir(modelo_folder)
+    if files:
+        cols = st.columns(3) # Tres archivos por fila
+        for i, file in enumerate(files):
             f_p = os.path.join(modelo_folder, file)
-            with st.container(border=True):
-                st.write(f"📄 {file}")
-                c1, c2 = st.columns(2)
-                with c1:
-                    with open(f_p, "rb") as f: st.download_button("⬇️", f, file_name=file, key=f"dl_{file}")
-                with c2:
-                    if st.button("🗑️", key=f"del_{file}"):
-                        os.remove(f_p)
-                        st.rerun()
+            ext = file.split(".")[-1].lower()
+            
+            with cols[i % 3]:
+                with st.container(border=True):
+                    if ext in ["jpg", "png", "jpeg"]:
+                        st.image(f_p, use_container_width=True)
+                    elif ext in ["mp4", "mov"]:
+                        st.video(f_p)
+                    else:
+                        st.write(f"📕 **{file}**")
+                    
+                    st.write(f"📄 {file}")
+                    c_down, c_del = st.columns([3, 1])
+                    with c_down:
+                        with open(f_p, "rb") as f:
+                            st.download_button("⬇️ Descargar", f, file_name=file, key=f"dl_{file}", use_container_width=True)
+                    with c_del:
+                        if st.button("🗑️", key=f"del_{file}"):
+                            os.remove(f_p)
+                            st.rerun()
+    else:
+        st.info("No hay archivos cargados para este modelo.")
 
-    # BOTÓN DE COPIADO (MANTENIENDO EL FORMATO QUE ANDA EXCELENTE)
+    # SECCIÓN PRESUPUESTO
+    st.write("---")
+    col_text, col_copy = st.columns([2, 1])
+    
+    with col_text:
+        with st.expander("👀 VER TEXTO DEL PRESUPUESTO", expanded=False):
+            texto_limpio = (f"Vigencia: {st.session_state.fecha_vigencia}\n"
+                            f"Vehículo: {d['Modelo']}\n"
+                            f"Valor: ${fmt(d['VM'])}\n"
+                            f"Beneficio: Pagando ${fmt(d['Adh'])} cubrís el ingreso.\n\n"
+                            f"{cierre_v}")
+            st.text(texto_limpio)
+
+    # BOTÓN DE COPIADO (Independiente)
     msj_copy = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
                 f"🚘 *Vehículo:* **{d['Modelo']}**\\n\\n"
                 f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
@@ -159,7 +179,6 @@ if st.session_state.lista_precios:
                 f"-----------------------------------------------------------\\n\\n"
                 f"{cierre_v.replace('\n', '\\n')}")
 
-    st.write("---")
     st.components.v1.html(f"""
     <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 18px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR TEXTO WHATSAPP</button></div>
     <script>
@@ -171,7 +190,9 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Copiado!');
+        alert('✅ ¡Texto Copiado!');
     }}
     </script>
     """, height=100)
+else:
+    st.info("👋 Hola Alejandro, cargá la planilla para empezar.")

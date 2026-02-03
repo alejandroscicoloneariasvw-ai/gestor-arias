@@ -168,8 +168,7 @@ if st.session_state.lista_precios:
             f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
             f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
             f"{cierre_v}")
-
-    st.components.v1.html(f"""
+        st.components.v1.html(f"""
     <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
     <script>
     function copyToClipboard() {{
@@ -190,48 +189,7 @@ if st.session_state.lista_precios:
         vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
         st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
 
-    # --- ARCHIVOS MULTIMEDIA ---
-    st.write("---")
-    st.subheader("📂 Archivos Multimedia")
-    
-    with st.expander("🆕 Crear Carpeta Nueva"):
-        n_c = st.text_input("Nombre del vehículo:").upper()
-        if st.button("Confirmar Carpeta"):
-            if n_c: 
-                st.session_state.carpetas_media[n_c] = []
-                st.rerun()
 
-    for carpeta in list(st.session_state.carpetas_media.keys()):
-        with st.expander(f"📁 {carpeta}"):
-            subida = st.file_uploader(f"Cargar en {carpeta}", accept_multiple_files=True, key=f"up_{carpeta}")
-            if subida:
-                for arc in subida:
-                    if arc.name not in [x['name'] for x in st.session_state.carpetas_media[carpeta]]:
-                        st.session_state.carpetas_media[carpeta].append({
-                            "name": arc.name, "data": arc.getvalue(), "type": arc.type
-                        })
-
-            if st.session_state.carpetas_media[carpeta]:
-                seleccionados = []
-                for i, doc in enumerate(st.session_state.carpetas_media[carpeta]):
-                    c_sel, c_img, c_txt, c_dl, c_del = st.columns([0.5, 1, 3, 1, 1])
-                    if c_sel.checkbox("", key=f"chk_{carpeta}_{i}"):
-                        seleccionados.append(doc)
-                    if "image" in doc['type']: c_img.image(doc['data'], width=60)
-                    else: c_img.write("📄")
-                    c_txt.text(doc['name'])
-                    
-                    # Descarga individual suelta
-                    c_dl.download_button("📲", doc['data'], file_name=doc['name'], key=f"indiv_{carpeta}_{i}", help="Descargar este archivo suelto")
-                    
-                    if c_del.button("🗑️", key=f"del_{carpeta}_{i}"):
-                        st.session_state.carpetas_media[carpeta].pop(i)
-                        st.rerun()
-                
-                if seleccionados:
-                    buf = io.BytesIO()
-                    with zipfile.ZipFile(buf, "w") as fzip:
-                        for s in seleccionados: fzip.writestr(s['name'], s['data'])
-                    st.download_button(f"📥 Descargar paquete ZIP ({len(seleccionados)} seleccionados)", buf.getvalue(), f"{carpeta}.zip", "application/zip", use_container_width=True)
 else:
-    st.info("👋 Hola Alejandro, carga la lista de precios para empezar.")
+    st.info("👋 Hola, carga la lista de precios para empezar.")
+

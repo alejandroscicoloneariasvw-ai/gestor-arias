@@ -148,7 +148,7 @@ if st.session_state.lista_precios:
     adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
-    # Mensaje actualizado con 84 cuotas pre-cancelables
+    # Mensaje actualizado
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
             f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
@@ -168,7 +168,14 @@ if st.session_state.lista_precios:
             f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
             f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
             f"{cierre_v}")
-        st.components.v1.html(f""" <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
+
+    # --- CORRECCIÓN DE LA LÍNEA 171 ---
+    st.components.v1.html(f"""
+    <div style="text-align: center;">
+        <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
+            📋 COPIAR PARA WHATSAPP
+        </button>
+    </div>
     <script>
     function copyToClipboard() {{
         const text = `{msj}`;
@@ -183,13 +190,10 @@ if st.session_state.lista_precios:
     </script>
     """, height=100)
 
-    # --- VISTA PREVIA DEL MENSAJE (RESTAURADO) ---
+    # --- VISTA PREVIA DEL MENSAJE ---
     with st.expander("👀 Ver Vista Previa del Mensaje", expanded=False):
         vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
         st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
 
-
 else:
     st.info("👋 Hola, carga la lista de precios para empezar.")
-
-

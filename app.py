@@ -47,15 +47,18 @@ if 'lista_precios' not in st.session_state:
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
+# --- TEXTO DE CIERRE ACTUALIZADO POR ALEJANDRO ---
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
         "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
         "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
         "✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
         "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
-        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅\n\n"
+        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones de "
+        "abonar un monto menor en la Cuota 1 y Suscripción (Ver Beneficio Exclusivo arriba). 💼✅\n\n"
         "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
-        "**DNI (frente y dorso)**. ¿Te parece bien? 📝📲"
+        "**DNI (frente y dorso)**. Yo reservo el cupo mientras terminás de decidirlo, así no perdés el beneficio por falta de stock "
+        "y coordinamos el pago del Beneficio Exclusivo. ¡¡¡Arrancá tu nuevo auto y poné primera!!! 🚙🏁🏆✅ ¿Te parece bien? 📝📲"
     )
 
 # --- BARRA LATERAL: GESTIÓN Y EDICIÓN ---
@@ -80,7 +83,7 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         m_f = p[0].strip().upper()
-                        # CORRECCIÓN: Quitamos VIRTUS de la adjudicación automática
+                        # VIRTUS sin adjudicación automática
                         adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
                         temp.append({
                             "Modelo": m_f, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
@@ -137,7 +140,6 @@ if st.session_state.lista_precios:
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
     else: tp = "Plan estándar"
     
-    # Solo arma el mensaje de adjudicación si el campo no está vacío
     adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') and d['Adj_Pactada'].strip() != "" else ""
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
@@ -182,10 +184,8 @@ if st.session_state.lista_precios:
     </script>
     """, height=100)
 
-    # --- VISTA PREVIA DEL MENSAJE ---
     with st.expander("👀 Ver Vista Previa del Mensaje", expanded=False):
         vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
         st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
-
 else:
     st.info("👋 Hola, carga la lista de precios para empezar.")

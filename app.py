@@ -168,8 +168,7 @@ if st.session_state.lista_precios:
             f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
             f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
             f"{cierre_v}")
-        st.components.v1.html(f"""
-    <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
+        st.components.v1.html(f""" <div style="text-align: center;"><button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button></div>
     <script>
     function copyToClipboard() {{
         const text = `{msj}`;
@@ -192,4 +191,5 @@ if st.session_state.lista_precios:
 
 else:
     st.info("👋 Hola, carga la lista de precios para empezar.")
+
 

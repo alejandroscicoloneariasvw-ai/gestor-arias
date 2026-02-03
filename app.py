@@ -46,15 +46,6 @@ if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
-if 'carpetas_media' not in st.session_state:
-    st.session_state.carpetas_media = {
-        "TERA TRENDLINE MSI": [],
-        "NIVUS 200 TSI": [],
-        "T-CROSS 200 TSI": [],
-        "VIRTUS TRENDLINE 1.6": [],
-        "AMAROK 4*2 TRENDLINE 2.0 140 CV": [],
-        "TAOS COMFORTLINE 1.4 150 CV": []
-    }
 
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
@@ -89,7 +80,8 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         m_f = p[0].strip().upper()
-                        adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS", "VIRTUS"]) else ""
+                        # CORRECCIÓN: Quitamos VIRTUS de la adjudicación automática
+                        adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
                         temp.append({
                             "Modelo": m_f, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
@@ -102,7 +94,7 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=500)
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=400)
 
         st.write("---")
         st.subheader("💰 Modificar Precios")
@@ -145,10 +137,10 @@ if st.session_state.lista_precios:
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
     else: tp = "Plan estándar"
     
-    adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
+    # Solo arma el mensaje de adjudicación si el campo no está vacío
+    adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') and d['Adj_Pactada'].strip() != "" else ""
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
-    # Mensaje actualizado
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
             f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
@@ -169,7 +161,7 @@ if st.session_state.lista_precios:
             f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
             f"{cierre_v}")
 
-    # --- CORRECCIÓN DE LA LÍNEA 171 ---
+    # --- BOTÓN DE COPIADO ---
     st.components.v1.html(f"""
     <div style="text-align: center;">
         <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">

@@ -111,16 +111,19 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
     
-    # Lógica de Alícuota y Tipo de Plan
+    # Lógica de Alícuota y Encabezado Dinámico
+    encabezado_plan = ""
     if "VIRTUS" in d['Modelo']: 
         tp = "Plan 100% financiado"
         alicuota_txt = ""
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): 
         tp = "Plan 60/40"
+        encabezado_plan = "Financiá hasta el **60%** de tu unidad en cuotas y adjudicalo con el **40%** de su valor.\\n\\n"
         monto_ali = d['VM'] * 0.40
         alicuota_txt = f"* *Alícuota Extraordinaria (40%):* ${fmt(int(monto_ali))} (Se abona al adjudicar)\\n"
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): 
         tp = "Plan 70/30"
+        encabezado_plan = "Financiá hasta el **70%** de tu unidad en cuotas y adjudicalo con el **30%** de su valor.\\n\\n"
         monto_ali = d['VM'] * 0.30
         alicuota_txt = f"* *Alícuota Extraordinaria (30%):* ${fmt(int(monto_ali))} (Se abona al adjudicar)\\n"
     else: 
@@ -131,6 +134,7 @@ if st.session_state.lista_precios:
     cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
     
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
+           f"{encabezado_plan}" # <--- NUEVO ENCABEZADO AQUÍ
            f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
            f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
            f"**Tipo de Plan:** {tp}\\n"
@@ -148,7 +152,8 @@ if st.session_state.lista_precios:
            f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\\n"
            f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
            f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n"
-           f"{alicuota_txt}\\n" # <--- Ubicada debajo de Cuota Pura
+           f"{alicuota_txt}"
+           f"\\n"
            f"{cierre_v}")
 
     st.components.v1.html(f"""

@@ -28,7 +28,7 @@ html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextI
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
-    st.session_state.fecha_vigencia = "03/03/2026"
+    st.session_state.fecha_vigencia = "04/03/2026"
 
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (

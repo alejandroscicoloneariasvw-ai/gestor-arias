@@ -1,45 +1,76 @@
 import streamlit as st
 from datetime import datetime
+import zipfile
+import io
 
+# --- CONFIGURACIÓN DE PÁGINA (BLINDADO) ---
 st.set_page_config(page_title="Arias Hnos. | Gestión de Ventas Pro", layout="wide")
 
-# --- LÓGICA DE DATOS Y SESIÓN ---
+# --- ESTILOS UNIFICADOS (BLINDADO) ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:ital,wght@0,400;0,700;1,300&display=swap');
+    
+    html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        font-size: 15px !important;
+    }
+    
+    .firma-scicolone {
+        font-family: 'Segoe UI', sans-serif;
+        font-style: italic;
+        font-weight: 300;
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: -15px;
+        margin-bottom: 20px;
+        letter-spacing: 0.5px;
+    }
+    
+    .caja-previa {
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #1a1a1b;
+        background-color: #ffffff;
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- MEMORIA DE SESIÓN (BLINDADO) ---
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
     st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
 
-# --- BARRA LATERAL: CARGA Y EDICIÓN ---
-with st.sidebar:
-    st.header("?? Carga y Edición")
-    modo = st.radio("Método:", ["Manual / Editar", "Subir Archivo (.txt)"])
-    
-    if modo == "Manual / Editar":
-        opciones_actuales = [a['Modelo'] for a in st.session_state.lista_precios] if st.session_state.lista_precios else ["TERA", "VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]
-        mod_a_editar = st.selectbox("Modelo a modificar:", opciones_actuales)
-        
-        datos_previos = next((a for a in st.session_state.lista_precios if a['Modelo'] == mod_a_editar), None)
+# --- TEXTO DE CIERRE ACTUALIZADO POR ALEJANDRO ---
+if 'texto_cierre' not in st.session_state:
+    st.session_state.texto_cierre = (
+        "💳 *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. "
+        "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
+        "✨ *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
+        "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
+        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones de "
+        "abonar un monto menor en la Cuota 1 y Suscripción (Ver Beneficio Exclusivo arriba). 💼✅\n\n"
+        "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
+        "**DNI (frente y dorso)**. Yo reservo el cupo mientras terminás de decidirlo, así no perdés el beneficio por falta de stock "
+        "y coordinamos el pago del Beneficio Exclusivo. ¡¡¡Arrancá tu nuevo auto y poné primera!!! 🚙🏁🏆✅ ¿Te parece bien? 📝📲"
+    )
 
-        with st.form("f_editar"):
-            st.write(f"Editing: **{mod_a_editar}**")
-            nuevo_nombre = st.text_input("Nombre del Vehículo (Completo):", value=mod_a_editar)
-            vm = st.number_input("Valor Móvil", value=int(datos_previos['VM']) if datos_previos else 0, step=1)
-            su = st.number_input("Suscripción", value=int(datos_previos['Susc']) if datos_previos else 0, step=1)
-            c1 = st.number_input("Cuota 1", value=int(datos_previos['C1']) if datos_previos else 0, step=1)
-            ad = st.number_input("Paga con Beneficio", value=int(datos_previos['Adh']) if datos_previos else 0, step=1)
-            c2 = st.number_input("Cuota 2-13", value=int(datos_previos['C2_13']) if datos_previos else 0, step=1)
-            cf = st.number_input("Cuota Final", value=int(datos_previos['CFin']) if datos_previos else 0, step=1)
-            cp = st.number_input("Cuota Pura", value=int(datos_previos['CPura']) if datos_previos else 0, step=1)
-            adj_text = st.text_input("Cuotas de Adjudicación:", value=datos_previos['Adj_Pactada'] if datos_previos else "8, 12 y 24")
-            
-            if st.form_submit_button("? Guardar y Actualizar"):
-                nuevo = {"Modelo": nuevo_nombre.upper(), "VM": vm, "Susc": su, "C1": c1, "Adh": ad, "C2_13": c2, "CFin": cf, "CPura": cp, "Adj_Pactada": adj_text}
-                st.session_state.lista_precios = [a for a in st.session_state.lista_precios if a['Modelo'] != mod_a_editar]
-                st.session_state.lista_precios.append(nuevo)
-                st.success("¡Datos actualizados!")
-                st.rerun()
+# --- BARRA LATERAL: GESTIÓN Y EDICIÓN ---
+with st.sidebar:
+    st.header("📥 Gestión de Datos")
+    if st.session_state.lista_precios:
+        modo = st.radio("Acción:", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True)
     else:
-        arc = st.file_uploader("Subir .txt", type=['txt'])
+        modo = "Cargar planilla nueva"
+
+    if modo == "Cargar planilla nueva":
+        arc = st.file_uploader("Subir planilla .txt", type=['txt'])
         if arc:
             cont = arc.getvalue().decode("utf-8", errors="ignore")
             lineas = cont.split("\n")
@@ -51,74 +82,110 @@ with st.sidebar:
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
-                        m_final = p[0].strip().upper()
-                        adj_ini = "8, 12 y 24" if any(x in m_final for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
+                        m_f = p[0].strip().upper()
+                        # VIRTUS sin adjudicación automática
+                        adj_ini = "8, 12 y 24" if any(x in m_f for x in ["TERA", "NIVUS", "T-CROSS"]) else ""
                         temp.append({
-                            "Modelo": m_final, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "Modelo": m_f, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
                             "CFin": int(float(p[6])), "CPura": int(float(p[7])), "Adj_Pactada": adj_ini
                         })
                     except: continue
             st.session_state.lista_precios = temp
-            st.success("Planilla cargada correctamente.")
+            st.rerun()
+
+    if st.session_state.lista_precios:
+        st.write("---")
+        st.subheader("📝 Modificar Cierre")
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=400)
+
+        st.write("---")
+        st.subheader("💰 Modificar Precios")
+        opcs = [a['Modelo'] for a in st.session_state.lista_precios]
+        m_sel_e = st.selectbox("Seleccionar Modelo para editar:", opcs)
+        d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
+
+        with st.form("f_edit_precios"):
+            n_nom = st.text_input("Nombre:", value=d_e['Modelo'])
+            n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
+            n_su = st.number_input("Suscripción ($):", value=int(d_e['Susc']))
+            n_c1 = st.number_input("Cuota 1 ($):", value=int(d_e['C1']))
+            n_ad = st.number_input("Beneficio ($):", value=int(d_e['Adh']))
+            n_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
+            n_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
+            n_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
+            n_adj = st.text_input("Adjudicación Pactada:", value=d_e['Adj_Pactada'])
+            
+            if st.form_submit_button("💾 Guardar Cambios"):
+                for item in st.session_state.lista_precios:
+                    if item['Modelo'] == m_sel_e:
+                        item.update({"Modelo": n_nom.upper(), "VM": n_vm, "Susc": n_su, "C1": n_c1, 
+                                     "Adh": n_ad, "C2_13": n_c2, "CFin": n_cf, "CPura": n_cp, "Adj_Pactada": n_adj})
+                st.rerun()
 
 # --- CUERPO PRINCIPAL ---
 if st.session_state.lista_precios:
-    st.markdown("## ?? Arias Hnos. | Presupuestos")
-    st.markdown("<p style='font-size: 14px; font-weight: bold; margin-top: -15px; color: gray;'>by Alejandro Scicolone</p>", unsafe_allow_html=True)
+    st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
+    st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
     
-    mod_sel = st.selectbox("?? Cliente interesado en:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🎯 Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     
     fmt = lambda x: f"{x:,}".replace(",", ".")
-    ah = (d['Susc'] + d['C1']) - d['Adh']
+    costo_normal = d['Susc'] + d['C1']
+    ahorro_total = costo_normal - d['Adh']
     
     if "VIRTUS" in d['Modelo']: tp = "Plan 100% financiado"
-    elif "AMAROK" in d['Modelo'] or "TAOS" in d['Modelo']: tp = "Plan 60/40"
-    else: tp = "Plan 70/30"
+    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): tp = "Plan 60/40"
+    elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): tp = "Plan 70/30"
+    else: tp = "Plan estándar"
     
-    adj_final = f"?? *Adjudicación Pactada en Cuota:* {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') else ""
+    adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\\n\\n" if d.get('Adj_Pactada') and d['Adj_Pactada'].strip() != "" else ""
+    cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
+    
+    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\\n\\n"
+            f"🚘 **Vehículo:** **{d['Modelo']}**\\n\\n"
+            f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
+            f"**Tipo de Plan:** {tp}\\n"
+            f"**Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\\n\\n"
+            f"{adj_f}"
+            f"**Detalle de Inversión Inicial:**\\n"
+            f"* *Suscripción a Financiación:* ${fmt(d['Susc'])}\\n"
+            f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
+            f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\\n\\n"
+            f"-----------------------------------------------------------\\n"
+            f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\\n\\n"
+            f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\\n"
+            f"-----------------------------------------------------------\\n\\n"
+            f"**Esquema de cuotas posteriores:**\\n"
+            f"* *Cuotas 2 a 13:* ${fmt(d['C2_13'])}\\n"
+            f"* *Cuotas 14 a 84:* ${fmt(d['CFin'])}\\n"
+            f"* *Cuota Pura:* ${fmt(d['CPura'])}\\n\\n"
+            f"{cierre_v}")
 
-    # MENSAJE CHEQUEADO POR ALEJANDRO
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al *{st.session_state.fecha_vigencia}*, aquí tienes el detalle de los costos para el:\\n\\n"
-           f"?? *Vehículo:* **{d['Modelo']}**\\n\\n"
-           f"*Valor del Auto:* ${fmt(d['VM'])}\\n"
-           f"*Tipo de Plan:* {tp}\\n"
-           f"*Plazo:* 84 Cuotas (Pre-cancelables a Cuota Pura hoy *${fmt(d['CPura'])}*)\\n\\n"
-           f"{adj_final}"
-           f"*Detalle de Inversión Inicial:*\n"
-           f"* *Suscripción:* ${fmt(d['Susc'])}\\n"
-           f"* *Cuota Nº 1:* ${fmt(d['C1'])}\\n"
-           f"* *Costo Total de Ingreso:* ${fmt(d['Susc']+d['C1'])}.\\n\\n"
-           f"-----------------------------------------------------------\\n"
-           f"?? *BENEFICIO EXCLUSIVO:* Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO**. (Ahorro directo de ${fmt(ah)})\\n"
-           f"-----------------------------------------------------------\\n\\n"
-           f"?? *DATO CLAVE:* Podés abonar el beneficio con *Tarjeta de Crédito* para patear el pago 30 días. Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! ??\\n\\n"
-           f"? *EL CAMBIO QUE MERECÉS:* Más allá del ahorro, imaginate lo que va a ser llegar a casa y ver la cara de orgullo de tu familia al ver el *{d['Modelo']}* nuevo. Ese momento de compartirlo con amigos y disfrutar del confort que te ganaste con tu esfuerzo. Hoy estamos a un solo paso. ??\\n\\n"
-           f"?? *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones de abonar un monto menor en la Cuota 1 y Suscripción (Ver *Beneficio Exclusivo* arriba). ???\\n\\n"
-           f"?? Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu **DNI (frente y dorso)**. Yo reservo el cupo mientras terminás de decidirlo, así no perdés el beneficio por falta de stock y coordinamos el pago del beneficio. ¿Te parece bien? ????")
-
-    st.write("---")
-    html_button = f"""
+    # --- BOTÓN DE COPIADO ---
+    st.components.v1.html(f"""
     <div style="text-align: center;">
-        <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">?? COPIAR PARA WHATSAPP</button>
+        <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 20px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
+            📋 COPIAR PARA WHATSAPP
+        </button>
     </div>
     <script>
     function copyToClipboard() {{
         const text = `{msj}`;
         const el = document.createElement('textarea');
-        el.value = text;
+        el.value = text.replace(/\\\\n/g, '\\n');
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('? ¡Copiado!');
+        alert('✅ ¡Copiado con éxito!');
     }}
     </script>
-    """
-    st.components.v1.html(html_button, height=100)
-    with st.expander("?? Vista Previa"):
-        st.text(msj.replace("\\n", "\n"))
-else:
-    st.info("Cargá la planilla para empezar.")
+    """, height=100)
 
+    with st.expander("👀 Ver Vista Previa del Mensaje", expanded=False):
+        vista_html = msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")
+        st.markdown(f'<div class="caja-previa">{vista_html}</div>', unsafe_allow_html=True)
+else:
+    st.info("👋 Hola, carga la lista de precios para empezar.")

@@ -28,7 +28,7 @@ st.markdown("""
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
-    st.session_state.fecha_vigencia = datetime.now().strftime("%d/%m/%Y")
+    st.session_state.fecha_vigencia = "03/03/2026"
 
 if 'texto_cierre' not in st.session_state:
     st.session_state.texto_cierre = (
@@ -74,10 +74,6 @@ with st.sidebar:
 
     if st.session_state.lista_precios:
         st.write("---")
-        st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=400)
-        
-        st.write("---")
         st.subheader("💰 Modificar Precios")
         opcs = [a['Modelo'] for a in st.session_state.lista_precios]
         m_sel_e = st.selectbox("Seleccionar Modelo para editar:", opcs)
@@ -111,7 +107,6 @@ if st.session_state.lista_precios:
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
     
-    # Lógica de Alícuota y Encabezado Dinámico
     encabezado_plan = ""
     if "VIRTUS" in d['Modelo']: 
         tp = "Plan 100% financiado"

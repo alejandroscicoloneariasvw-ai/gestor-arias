@@ -46,10 +46,7 @@ if 'texto_cierre' not in st.session_state:
 # --- BARRA LATERAL ---
 with st.sidebar:
     st.header("📥 Gestión de Datos")
-    if st.session_state.lista_precios:
-        modo = st.radio("Acción:", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True)
-    else:
-        modo = "Cargar planilla nueva"
+    modo = st.radio("Acción:", ["Usar datos guardados", "Cargar planilla nueva"], horizontal=True) if st.session_state.lista_precios else "Cargar planilla nueva"
 
     if modo == "Cargar planilla nueva":
         arc = st.file_uploader("Subir planilla .txt", type=['txt'])
@@ -121,12 +118,12 @@ if st.session_state.lista_precios:
         alicuota_txt = ""
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): 
         tp = "Plan 60/40"
-        encabezado_plan = "Financiá hasta el **60%** de tu unidad en cuotas y adjudicalo con el **40%** de su valor.\\n\\n"
+        encabezado_plan = f"Financia hasta el **60%** de tu unidad en cuotas y adjudicalo con el **40%** de su valor.\\n\\n"
         monto_ali = d['VM'] * 0.40
         alicuota_txt = f"* *Alícuota Extraordinaria (40%):* ${fmt(int(monto_ali))} (Se abona al adjudicar)\\n"
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): 
         tp = "Plan 70/30"
-        encabezado_plan = "Financiá hasta el **70%** de tu unidad en cuotas y adjudicalo con el **30%** de su valor.\\n\\n"
+        encabezado_plan = f"Financia hasta el **70%** de tu unidad en cuotas y adjudicalo con el **30%** de su valor.\\n\\n"
         monto_ali = d['VM'] * 0.30
         alicuota_txt = f"* *Alícuota Extraordinaria (30%):* ${fmt(int(monto_ali))} (Se abona al adjudicar)\\n"
     else: 

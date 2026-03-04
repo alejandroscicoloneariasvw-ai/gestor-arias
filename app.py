@@ -9,17 +9,17 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:ital,wght@0,400;0,700;1,300&display=swap');
 html, body, [class*="css"], .stTextArea textarea, .stNumberInput input, .stTextInput input {
-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-font-size: 15px !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    font-size: 15px !important;
 }
 .firma-scicolone {
-font-family: 'Segoe UI', sans-serif; font-style: italic; font-weight: 300; font-size: 14px;
-color: #6c757d; margin-top: -15px; margin-bottom: 20px; letter-spacing: 0.5px;
+    font-family: 'Segoe UI', sans-serif; font-style: italic; font-weight: 300; font-size: 14px;
+    color: #6c757d; margin-top: -15px; margin-bottom: 20px; letter-spacing: 0.5px;
 }
 .caja-previa {
-font-family: 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.6; color: #1a1a1b;
-background-color: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0;
-box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    font-family: 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.6; color: #1a1a1b;
+    background-color: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
 }
 </style>
 """, unsafe_allow_html=True)

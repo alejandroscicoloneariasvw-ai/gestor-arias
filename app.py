@@ -33,7 +33,6 @@ if st.session_state.lista_precios:
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     
-    # --- LÓGICA DE TEXTO RESALTADO ---
     encabezado_plan = ""
     alicuota_txt = ""
     if "VIRTUS" in d['Modelo']: 
@@ -46,7 +45,7 @@ if st.session_state.lista_precios:
         alicuota_txt = f"* *Alícuota Extraordinaria (30%):* **Hoy ${fmt(int(d['VM']*0.30))}** (Se abona al adjudicar)\n"
 
     msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**:\n\n"
-           f"{encabezado_plan}" # <--- ESTO VA PRIMERO Y EN NEGRITA
+           f"{encabezado_plan}"
            f"🚘 **Vehículo: {d['Modelo']}**\n"
            f"**Valor del Auto: ${fmt(d['VM'])}**\n\n"
            f"**Detalle de Inversión Inicial:**\n"
@@ -58,8 +57,8 @@ if st.session_state.lista_precios:
            f"**Cuotas posteriores:**\n"
            f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
            f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n"
-           f"{alicuota_txt}") # <--- ACÁ DICE "HOY"
+           f"{alicuota_txt}")
 
-    st.text_area("Copiá el mensaje desde acá:", msj, height=400)
+    st.text_area("Copiá para WhatsApp:", msj, height=400)
 else:
-    st.info("Cargá la planilla para empezar.")
+    st.info("👋 Subí la planilla en el menú de la izquierda para empezar.")

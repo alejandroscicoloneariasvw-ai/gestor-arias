@@ -52,7 +52,8 @@ with st.sidebar:
                         temp.append({
                             "Modelo": p[0].strip().upper(), "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
-                            "CFin": int(float(p[6])), "CPura": int(float(p[7]))
+                            "CFin": int(float(p[6])), "CPura": int(float(p[7])),
+                            "Adj": "8, 12 y 24" # Actualizado a tu pedido
                         })
                     except: continue
             st.session_state.lista_precios = temp
@@ -61,7 +62,7 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=250)
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=200)
 
         st.write("---")
         st.subheader("💰 Editar Variables")
@@ -70,20 +71,12 @@ with st.sidebar:
 
         with st.form("f_edit"):
             c_vm = st.number_input("Valor Móvil:", value=int(d_e['VM']))
-            c_su = st.number_input("Suscripción:", value=int(d_e['Susc']))
-            c_c1 = st.number_input("Cuota 1:", value=int(d_e['C1']))
             c_ad = st.number_input("Beneficio (Adhesión):", value=int(d_e['Adh']))
-            c_c2 = st.number_input("Cuota 2 a 13:", value=int(d_e['C2_13']))
-            c_cf = st.number_input("Cuota 14 a 84:", value=int(d_e['CFin']))
-            c_cp = st.number_input("Cuota Pura:", value=int(d_e['CPura']))
-            
+            c_adj = st.text_input("Cuotas de Adjudicación:", value=d_e.get('Adj', '8, 12 y 24'))
             if st.form_submit_button("💾 Guardar Cambios"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == m_sel_e:
-                        item.update({
-                            "VM": c_vm, "Susc": c_su, "C1": c_c1, "Adh": c_ad, 
-                            "C2_13": c_c2, "CFin": c_cf, "CPura": c_cp
-                        })
+                        item.update({"VM": c_vm, "Adh": c_ad, "Adj": c_adj})
                 st.rerun()
 
 if st.session_state.lista_precios:
@@ -93,9 +86,10 @@ if st.session_state.lista_precios:
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     
-    # CAMBIAMOS LA SIRENA POR EL DIAMANTE (O EL QUE PREFIERAS)
     atencion = "💎 *¡ATENCIÓN!*"
-    
+    # Línea de adjudicación asegurada
+    adj_text = f"* **Adjudicación Asegurada:** Cuotas {d.get('Adj', '8, 12 y 24')}\n"
+
     if "VIRTUS" in d['Modelo']:
         encabezado = f"{atencion} **Vehículo financiado 100% en cuotas sin necesidad de integración mínima.**"
         tp, porc, alic_h = "Plan 100% financiado", "0%", 0
@@ -108,7 +102,7 @@ if st.session_state.lista_precios:
 
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
-    alic_line = f"* Alícuota ({porc}): **Hoy ${fmt(alic_h)}**\n" if alic_h > 0 else ""
+    alic_line = f"* Alícuota ({porc}): Hoy ${fmt(alic_h)}\n" if alic_h > 0 else ""
     
     msj = (f"{encabezado}\n\n"
             f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
@@ -124,6 +118,7 @@ if st.session_state.lista_precios:
             f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\n"
             f"-----------------------------------------------------------\n\n"
             f"**Esquema de cuotas posteriores:**\n"
+            f"{adj_text}"
             f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
             f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n"
             f"{alic_line}"

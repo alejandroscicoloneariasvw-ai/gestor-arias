@@ -53,7 +53,7 @@ with st.sidebar:
                             "Modelo": p[0].strip().upper(), "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
                             "CFin": int(float(p[6])), "CPura": int(float(p[7])),
-                            "Adj": "8, 12 y 24" # Actualizado a tu pedido
+                            "Adj": "8, 12 y 24"
                         })
                     except: continue
             st.session_state.lista_precios = temp
@@ -61,35 +61,37 @@ with st.sidebar:
     
     if st.session_state.lista_precios:
         st.write("---")
-        st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=200)
-
-        st.write("---")
-        st.subheader("💰 Editar Variables")
+        st.subheader("💰 Editar Todas las Variables")
         m_sel_e = st.selectbox("Modelo a editar:", [a['Modelo'] for a in st.session_state.lista_precios])
         d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
-        with st.form("f_edit"):
-            c_vm = st.number_input("Valor Móvil:", value=int(d_e['VM']))
-            c_ad = st.number_input("Beneficio (Adhesión):", value=int(d_e['Adh']))
-            c_adj = st.text_input("Cuotas de Adjudicación:", value=d_e.get('Adj', '8, 12 y 24'))
-            if st.form_submit_button("💾 Guardar Cambios"):
+        with st.form("f_edit_total"):
+            c_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
+            c_su = st.number_input("Suscripción a Financiación ($):", value=int(d_e['Susc']))
+            c_c1 = st.number_input("Cuota Nº 1 ($):", value=int(d_e['C1']))
+            c_ad = st.number_input("Beneficio / Adhesión ($):", value=int(d_e['Adh']))
+            c_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
+            c_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
+            c_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
+            c_adj = st.text_input("Adjudicación Pactada:", value=d_e.get('Adj', '8, 12 y 24'))
+            
+            if st.form_submit_button("💾 Guardar Cambios en Modelo"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == m_sel_e:
-                        item.update({"VM": c_vm, "Adh": c_ad, "Adj": c_adj})
+                        item.update({
+                            "VM": c_vm, "Susc": c_su, "C1": c_c1, "Adh": c_ad, 
+                            "C2_13": c_c2, "CFin": c_cf, "CPura": c_cp, "Adj": c_adj
+                        })
                 st.rerun()
 
 if st.session_state.lista_precios:
     st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
     st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
-    mod_sel = st.selectbox("🎯 Modelo para el cliente:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🎯 Seleccioná el Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     
     atencion = "💎 *¡ATENCIÓN!*"
-    # Línea de adjudicación asegurada
-    adj_text = f"* **Adjudicación Asegurada:** Cuotas {d.get('Adj', '8, 12 y 24')}\n"
-
     if "VIRTUS" in d['Modelo']:
         encabezado = f"{atencion} **Vehículo financiado 100% en cuotas sin necesidad de integración mínima.**"
         tp, porc, alic_h = "Plan 100% financiado", "0%", 0
@@ -104,21 +106,22 @@ if st.session_state.lista_precios:
     ahorro_total = costo_normal - d['Adh']
     alic_line = f"* Alícuota ({porc}): Hoy ${fmt(alic_h)}\n" if alic_h > 0 else ""
     
+    # CONSTRUCCIÓN DEL MENSAJE IGUAL A LA FOTO
     msj = (f"{encabezado}\n\n"
             f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\n"
-            f"**Valor del Auto:** ${fmt(d['VM'])}\n"
-            f"**Tipo de Plan:** {tp}\n\n"
+            f"* **Valor del Auto:** ${fmt(d['VM'])}\n"
+            f"* **Tipo de Plan:** {tp}\n"
+            f"* **Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\n\n"
+            f"🎈 *Adjudicación Pactada en Cuota:* {d.get('Adj', '8, 12 y 24')}\n\n"
             f"**Detalle de Inversión Inicial:**\n"
-            f"* Suscripción: ${fmt(d['Susc'])}\n"
+            f"* Suscripción a Financiación: ${fmt(d['Susc'])}\n"
             f"* Cuota Nº 1: ${fmt(d['C1'])}\n"
-            f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)}\n\n"
-            f"-----------------------------------------------------------\n"
+            f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\n\n"
             f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n"
             f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\n"
             f"-----------------------------------------------------------\n\n"
             f"**Esquema de cuotas posteriores:**\n"
-            f"{adj_text}"
             f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
             f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n"
             f"{alic_line}"
@@ -140,12 +143,12 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Presupuesto copiado!');
+        alert('✅ ¡Copiado con éxito!');
     }}
     </script>
     """, height=80)
     
-    with st.expander("👀 Vista Previa"):
+    with st.expander("👀 Ver Vista Previa", expanded=True):
         st.markdown(f'<div class="caja-previa">{msj.replace("\n", "<br>").replace("**", "<b>").replace("*", "")}</div>', unsafe_allow_html=True)
 else:
-    st.info("👋 Hola, cargá la lista de precios en el menú de la izquierda para empezar.")
+    st.info("👋 Hola, carga la lista de precios para empezar.")

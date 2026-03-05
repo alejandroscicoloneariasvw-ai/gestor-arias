@@ -47,3 +47,94 @@ with st.sidebar:
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
+                        temp.append({
+                            "Modelo": p[0].strip().upper(), "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
+                            "CFin": int(float(p[6])), "CPura": int(float(p[7]))
+                        })
+                    except: continue
+            st.session_state.lista_precios = temp
+            st.rerun()
+    
+    if st.session_state.lista_precios:
+        st.write("---")
+        st.subheader("📝 Modificar Cierre")
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=200)
+
+        st.write("---")
+        st.subheader("💰 Editar Precios Manualmente")
+        m_sel_e = st.selectbox("Elegí el modelo a corregir:", [a['Modelo'] for a in st.session_state.lista_precios])
+        d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
+
+        with st.form("f_edit"):
+            n_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
+            n_ad = st.number_input("Beneficio / Adhesión ($):", value=int(d_e['Adh']))
+            if st.form_submit_button("💾 Aplicar Cambios"):
+                for item in st.session_state.lista_precios:
+                    if item['Modelo'] == m_sel_e:
+                        item.update({"VM": n_vm, "Adh": n_ad})
+                st.rerun()
+
+if st.session_state.lista_precios:
+    st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
+    st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
+    mod_sel = st.selectbox("🎯 Seleccioná el Modelo para el presupuesto:", [a['Modelo'] for a in st.session_state.lista_precios])
+    d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
+    fmt = lambda x: f"{x:,}".replace(",", ".")
+    
+    if "VIRTUS" in d['Modelo']:
+        encabezado = "**Vehículo financiado 100% en cuotas sin necesidad de integración mínima.**"
+        tp, porc, alic_h = "Plan 100% financiado", "0%", 0
+    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]):
+        encabezado = "**Financiá el 60% de tu unidad en cuotas y adjudicalo con el 40% de su valor.**"
+        tp, porc, alic_h = "Plan 60/40", "40%", int(d['VM'] * 0.4)
+    else:
+        encabezado = "**Financiá el 70% de tu unidad en cuotas y adjudicalo con el 30% de su valor.**"
+        tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
+
+    costo_normal = d['Susc'] + d['C1']
+    ahorro_total = costo_normal - d['Adh']
+    alic_line = f"* Alícuota ({porc}): **Hoy ${fmt(alic_h)}**\\n" if alic_h > 0 else ""
+    cierre_v = st.session_state.texto_cierre.replace("\n", "\\n")
+    
+    msj = (f"{encabezado}\\n\\n"
+            f"Presupuesto de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}** para el:\\n\\n"
+            f"🚘 **Vehículo:** **{d['Modelo']}**\\n"
+            f"**Valor del Auto:** ${fmt(d['VM'])}\\n"
+            f"**Tipo de Plan:** {tp}\\n\\n"
+            f"**Detalle de Inversión Inicial:**\\n"
+            f"* Suscripción: ${fmt(d['Susc'])}\\n"
+            f"* Cuota Nº 1: ${fmt(d['C1'])}\\n"
+            f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)}\\n\\n"
+            f"-----------------------------------------------------------\\n"
+            f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\\n"
+            f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\\n"
+            f"-----------------------------------------------------------\\n\\n"
+            f"**Esquema de cuotas posteriores:**\\n"
+            f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\\n"
+            f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\\n"
+            f"{alic_line}"
+            f"* Cuota Pura: ${fmt(d['CPura'])}\\n\\n"
+            f"{cierre_v}")
+
+    st.components.v1.html(f"""
+    <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
+        📋 COPIAR PARA WHATSAPP
+    </button>
+    <script>
+    function copyToClipboard() {{
+        const text = `{msj}`;
+        const el = document.createElement('textarea');
+        el.value = text.replace(/\\\\n/g, '\\n');
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert('✅ ¡Presupuesto copiado!');
+    }}
+    </script>
+    """, height=80)
+    with st.expander("👀 Vista Previa"):
+        st.markdown(f'<div class="caja-previa">{msj.replace("\\n", "<br>").replace("**", "<b>").replace("*", "")}</div>', unsafe_allow_html=True)
+else:
+    st.info("👋 Hola, cargá la lista de precios en el menú de la izquierda para empezar.")

@@ -126,7 +126,7 @@ if st.session_state.lista_precios:
     msj = (f"{encabezado}\n\n"
             f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\n"
-            |f"* **Valor de la Unidad:** ${fmt(d['VM'])}\n"
+            f"* **Valor de la Unidad:** ${fmt(d['VM'])}\n"
             f"* **Tipo de Plan:** {tp}\n"
             f"* **Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\n\n"
             f"{linea_adj}"

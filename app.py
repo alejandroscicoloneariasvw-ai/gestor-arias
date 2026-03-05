@@ -26,7 +26,8 @@ if 'texto_cierre' not in st.session_state:
         "Además, la Cuota Nº 2 recién te llegará a los *60 días*. ¡Tenés un mes de gracia para acomodar tus gastos! 🚀\n\n"
         "✨ *EL CAMBIO QUE MERECÉS:* Imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
         "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
-        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones. 💼✅\n\n"
+        "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones "
+        "de abonar un monto menor en la Cuota 1 y Suscripción (Ver Beneficio Exclusivo arriba). 💼✅\n\n"
         "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
         "**DNI (frente y dorso)**. Yo reservo el cupo mientras terminás de decidirlo. ¡Arrancá tu nuevo auto! 🚙🏁🏆✅ ¿Te parece bien? 📝📲"
     )
@@ -60,7 +61,7 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("📝 Modificar Cierre")
-        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=150)
+        st.session_state.texto_cierre = st.text_area("Texto de cierre:", value=st.session_state.texto_cierre, height=250)
 
         st.write("---")
         st.subheader("💰 Editar Variables")
@@ -92,8 +93,9 @@ if st.session_state.lista_precios:
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     
-    # Lógica de encabezados con "¡ATENCIÓN!" (Pedido)
-    atencion = "🚨 *¡ATENCIÓN!*"
+    # CAMBIAMOS LA SIRENA POR EL DIAMANTE (O EL QUE PREFIERAS)
+    atencion = "💎 *¡ATENCIÓN!*"
+    
     if "VIRTUS" in d['Modelo']:
         encabezado = f"{atencion} **Vehículo financiado 100% en cuotas sin necesidad de integración mínima.**"
         tp, porc, alic_h = "Plan 100% financiado", "0%", 0
@@ -108,7 +110,6 @@ if st.session_state.lista_precios:
     ahorro_total = costo_normal - d['Adh']
     alic_line = f"* Alícuota ({porc}): **Hoy ${fmt(alic_h)}**\n" if alic_h > 0 else ""
     
-    # Frase de vigencia corregida (Pedido)
     msj = (f"{encabezado}\n\n"
             f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\n"
@@ -144,7 +145,7 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Copiado con éxito!');
+        alert('✅ ¡Presupuesto copiado!');
     }}
     </script>
     """, height=80)

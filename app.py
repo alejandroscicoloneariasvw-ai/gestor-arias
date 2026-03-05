@@ -15,6 +15,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Inicialización de estados
 if 'lista_precios' not in st.session_state:
     st.session_state.lista_precios = []
 if 'fecha_vigencia' not in st.session_state:
@@ -50,7 +51,6 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         modelo_nombre = p[0].strip().upper()
-                        # Lógica: Solo ciertos modelos tienen adjudicación pactada
                         tiene_adj = not any(x in modelo_nombre for x in ["VIRTUS", "AMAROK", "TAOS"])
                         temp.append({
                             "Modelo": modelo_nombre, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
@@ -64,8 +64,10 @@ with st.sidebar:
     
     if st.session_state.lista_precios:
         st.write("---")
-        st.subheader("💰 Editar Todas las Variables")
-        m_sel_e = st.selectbox("Modelo a editar:", [a['Modelo'] for a in st.session_state.lista_precios])
+        st.subheader("🛠️ Panel de Edición Total")
+        
+        # 1. Edición de Variables Numéricas por Modelo
+        m_sel_e = st.selectbox("Seleccionar Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
         d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
         with st.form("f_edit_total"):
@@ -76,36 +78,45 @@ with st.sidebar:
             c_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
             c_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
             c_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
-            c_adj = st.text_input("Adjudicación Pactada (dejar vacío si no tiene):", value=d_e.get('Adj', ''))
+            c_adj = st.text_input("Adjudicación Pactada:", value=d_e.get('Adj', ''))
             
-            if st.form_submit_button("💾 Guardar Cambios"):
+            if st.form_submit_button("💾 Guardar Datos del Modelo"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == m_sel_e:
                         item.update({
                             "VM": c_vm, "Susc": c_su, "C1": c_c1, "Adh": c_ad, 
                             "C2_13": c_c2, "CFin": c_cf, "CPura": c_cp, "Adj": c_adj
                         })
+                st.success("Variables actualizadas")
                 st.rerun()
+
+        # 2. Edición del Texto de Cierre (Persuasión/Neuroventas)
+        st.write("---")
+        st.subheader("✍️ Editar Cierre Persuasivo")
+        nuevo_texto_cierre = st.text_area("Cierre de Venta:", value=st.session_state.texto_cierre, height=300)
+        if st.button("✅ Actualizar Cierre"):
+            st.session_state.texto_cierre = nuevo_texto_cierre
+            st.rerun()
 
 if st.session_state.lista_precios:
     st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
     st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
-    mod_sel = st.selectbox("🎯 Seleccioná el Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🎯 Seleccioná el Modelo para enviar:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     
     atencion = "💎 *¡ATENCIÓN!*"
+    # Corrección de "adjudicalo" a "adjudica" según lo solicitado
     if "VIRTUS" in d['Modelo']:
         encabezado = f"{atencion} **Vehículo financiado 100% en cuotas sin necesidad de integración mínima.**"
         tp, porc, alic_h = "Plan 100% financiado", "0%", 0
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]):
-        encabezado = f"{atencion} **Financiá el 60% de tu unidad en cuotas y adjudicalo con el 40% de su valor.**"
+        encabezado = f"{atencion} **Financiá el 60% de tu unidad en cuotas y adjudica con el 40% de su valor.**"
         tp, porc, alic_h = "Plan 60/40", "40%", int(d['VM'] * 0.4)
     else:
-        encabezado = f"{atencion} **Financiá el 70% de tu unidad en cuotas y adjudicalo con el 30% de su valor.**"
+        encabezado = f"{atencion} **Financiá el 70% de tu unidad en cuotas y adjudica con el 30% de su valor.**"
         tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
 
-    # Lógica de la línea de adjudicación en el mensaje
     linea_adj = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj']}\n\n" if d.get('Adj') else ""
 
     costo_normal = d['Susc'] + d['C1']
@@ -115,7 +126,7 @@ if st.session_state.lista_precios:
     msj = (f"{encabezado}\n\n"
             f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\n"
-            f"* **Valor de la Unidad:** ${fmt(d['VM'])}\n"
+            |f"* **Valor de la Unidad:** ${fmt(d['VM'])}\n"
             f"* **Tipo de Plan:** {tp}\n"
             f"* **Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\n\n"
             f"{linea_adj}"

@@ -111,27 +111,27 @@ if st.session_state.lista_precios:
     ahorro_total = costo_normal - d['Adh']
     
     encabezado_plan = ""
+    alicuota_txt = ""
+    tp = "Plan estándar"
+    
     if "VIRTUS" in d['Modelo']: 
         tp = "Plan 100% financiado"
-        alicuota_txt = ""
+        encabezado_plan = f"**Financiá el 100% de tu unidad en cuotas sin necesidad de integración mínima.**\n\n"
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]): 
         tp = "Plan 60/40"
-        encabezado_plan = f"Financia hasta el **60%** de tu unidad en cuotas y adjudicalo con el **40%** de su valor.\n\n"
+        encabezado_plan = f"**Financiá hasta el 60% de tu unidad en cuotas y adjudicalo con el 40% de su valor.**\n\n"
         monto_ali = d['VM'] * 0.40
-        alicuota_txt = f"* *Alícuota Extraordinaria (40%):* ${fmt(int(monto_ali))} (Se abona al adjudicar)\n"
+        alicuota_txt = f"* *Alícuota Extraordinaria (40%):* **Hoy ${fmt(int(monto_ali))}** (Se abona al adjudicar)\n"
     elif any(x in d['Modelo'] for x in ["TERA", "NIVUS", "T-CROSS"]): 
         tp = "Plan 70/30"
-        encabezado_plan = f"Financia hasta el **70%** de tu unidad en cuotas y adjudicalo con el **30%** de su valor.\n\n"
+        encabezado_plan = f"**Financiá hasta el 70% de tu unidad en cuotas y adjudicalo con el 30% de su valor.**\n\n"
         monto_ali = d['VM'] * 0.30
-        alicuota_txt = f"* *Alícuota Extraordinaria (30%):* ${fmt(int(monto_ali))} (Se abona al adjudicar)\n"
-    else: 
-        tp = "Plan estándar"
-        alicuota_txt = ""
+        alicuota_txt = f"* *Alícuota Extraordinaria (30%):* **Hoy ${fmt(int(monto_ali))}** (Se abona al adjudicar)\n"
 
     adj_f = f"🎈 **Adjudicación Pactada en Cuota:** {d['Adj_Pactada']}\n\n" if d.get('Adj_Pactada') and d['Adj_Pactada'].strip() != "" else ""
     cierre_v = st.session_state.texto_cierre
     
-    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
+    msj = (f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle para el:\n\n"
            f"{encabezado_plan}"
            f"🚘 **Vehículo:** **{d['Modelo']}**\n\n"
            f"**Valor del Auto:** ${fmt(d['VM'])}\n"

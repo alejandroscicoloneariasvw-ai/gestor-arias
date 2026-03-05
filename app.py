@@ -49,11 +49,14 @@ with st.sidebar:
                 p = l.split(",")
                 if len(p) >= 8:
                     try:
+                        modelo_nombre = p[0].strip().upper()
+                        # Lógica: Solo ciertos modelos tienen adjudicación pactada
+                        tiene_adj = not any(x in modelo_nombre for x in ["VIRTUS", "AMAROK", "TAOS"])
                         temp.append({
-                            "Modelo": p[0].strip().upper(), "VM": int(float(p[1])), "Susc": int(float(p[2])), 
+                            "Modelo": modelo_nombre, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
                             "CFin": int(float(p[6])), "CPura": int(float(p[7])),
-                            "Adj": "8, 12 y 24"
+                            "Adj": "8, 12 y 24" if tiene_adj else ""
                         })
                     except: continue
             st.session_state.lista_precios = temp
@@ -66,16 +69,16 @@ with st.sidebar:
         d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
         with st.form("f_edit_total"):
-            c_vm = st.number_input("Valor Móvil ($):", value=int(d_e['VM']))
+            c_vm = st.number_input("Valor de la Unidad ($):", value=int(d_e['VM']))
             c_su = st.number_input("Suscripción a Financiación ($):", value=int(d_e['Susc']))
             c_c1 = st.number_input("Cuota Nº 1 ($):", value=int(d_e['C1']))
             c_ad = st.number_input("Beneficio / Adhesión ($):", value=int(d_e['Adh']))
             c_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
             c_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
             c_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
-            c_adj = st.text_input("Adjudicación Pactada:", value=d_e.get('Adj', '8, 12 y 24'))
+            c_adj = st.text_input("Adjudicación Pactada (dejar vacío si no tiene):", value=d_e.get('Adj', ''))
             
-            if st.form_submit_button("💾 Guardar Cambios en Modelo"):
+            if st.form_submit_button("💾 Guardar Cambios"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == m_sel_e:
                         item.update({
@@ -102,18 +105,20 @@ if st.session_state.lista_precios:
         encabezado = f"{atencion} **Financiá el 70% de tu unidad en cuotas y adjudicalo con el 30% de su valor.**"
         tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
 
+    # Lógica de la línea de adjudicación en el mensaje
+    linea_adj = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj']}\n\n" if d.get('Adj') else ""
+
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
     alic_line = f"* Alícuota ({porc}): Hoy ${fmt(alic_h)}\n" if alic_h > 0 else ""
     
-    # CONSTRUCCIÓN DEL MENSAJE IGUAL A LA FOTO
     msj = (f"{encabezado}\n\n"
             f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\n"
-            f"* **Valor del Auto:** ${fmt(d['VM'])}\n"
+            f"* **Valor de la Unidad:** ${fmt(d['VM'])}\n"
             f"* **Tipo de Plan:** {tp}\n"
             f"* **Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\n\n"
-            f"🎈 *Adjudicación Pactada en Cuota:* {d.get('Adj', '8, 12 y 24')}\n\n"
+            f"{linea_adj}"
             f"**Detalle de Inversión Inicial:**\n"
             f"* Suscripción a Financiación: ${fmt(d['Susc'])}\n"
             f"* Cuota Nº 1: ${fmt(d['C1'])}\n"
@@ -151,4 +156,4 @@ if st.session_state.lista_precios:
     with st.expander("👀 Ver Vista Previa", expanded=True):
         st.markdown(f'<div class="caja-previa">{msj.replace("\n", "<br>").replace("**", "<b>").replace("*", "")}</div>', unsafe_allow_html=True)
 else:
-    st.info("👋 Hola, carga la lista de precios para empezar.")
+    st.info("👋 Hola, cargá la lista de precios para empezar.")

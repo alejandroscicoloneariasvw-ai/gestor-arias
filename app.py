@@ -28,7 +28,7 @@ if 'texto_cierre' not in st.session_state:
         "✨ *EL CAMBIO QUE MERECÉS:* Imaginate lo que va a ser llegar a casa y ver la cara de orgullo "
         "de tu familia al ver el vehículo nuevo. Hoy estamos a un solo paso. 🥂\n\n"
         "⚠️ *IMPORTANTE:* Al momento de enviarte esto, solo me quedan *2 cupos disponibles* con estas condiciones "
-        "de abonar un monto menor en la Cuota 1 y Suscripción (Ver Beneficio Exclusivo arriba). 💼✅\n\n"
+        "de abonar un monto menor en la Cuota 1 y Suscripción. 💼✅\n\n"
         "🎁 Para asegurar la bonificación del *PRIMER SERVICIO DE MANTENIMIENTO* y el *POLARIZADO DE REGALO*, enviame ahora la foto de tu "
         "**DNI (frente y dorso)**. Yo reservo el cupo mientras terminás de decidirlo. ¡Arrancá tu nuevo auto! 🚙🏁🏆✅ ¿Te parece bien? 📝📲"
     )
@@ -51,12 +51,19 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         modelo_nombre = p[0].strip().upper()
-                        tiene_adj = not any(x in modelo_nombre for x in ["VIRTUS", "AMAROK", "TAOS"])
+                        # Lógica de adjudicación basada en el nuevo requerimiento
+                        if any(x in modelo_nombre for x in ["VIRTUS", "T-CROSS", "NIVUS"]):
+                            adj_val = "Sorteo o Licitación"
+                        elif "TERA" in modelo_nombre:
+                            adj_val = "8, 12 y 24"
+                        else:
+                            adj_val = ""
+                            
                         temp.append({
                             "Modelo": modelo_nombre, "VM": int(float(p[1])), "Susc": int(float(p[2])), 
                             "C1": int(float(p[3])), "Adh": int(float(p[4])), "C2_13": int(float(p[5])), 
                             "CFin": int(float(p[6])), "CPura": int(float(p[7])),
-                            "Adj": "8, 12 y 24" if tiene_adj else ""
+                            "Adj": adj_val
                         })
                     except: continue
             st.session_state.lista_precios = temp
@@ -65,8 +72,6 @@ with st.sidebar:
     if st.session_state.lista_precios:
         st.write("---")
         st.subheader("🛠️ Panel de Edición Total")
-        
-        # 1. Edición de Variables Numéricas por Modelo
         m_sel_e = st.selectbox("Seleccionar Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
         d_e = next(a for a in st.session_state.lista_precios if a['Modelo'] == m_sel_e)
 
@@ -78,19 +83,15 @@ with st.sidebar:
             c_c2 = st.number_input("Cuotas 2 a 13 ($):", value=int(d_e['C2_13']))
             c_cf = st.number_input("Cuotas 14 a 84 ($):", value=int(d_e['CFin']))
             c_cp = st.number_input("Cuota Pura ($):", value=int(d_e['CPura']))
-            c_adj = st.text_input("Adjudicación Pactada:", value=d_e.get('Adj', ''))
+            c_adj = st.text_input("Adjudicación:", value=d_e.get('Adj', ''))
             
             if st.form_submit_button("💾 Guardar Datos del Modelo"):
                 for item in st.session_state.lista_precios:
                     if item['Modelo'] == m_sel_e:
-                        item.update({
-                            "VM": c_vm, "Susc": c_su, "C1": c_c1, "Adh": c_ad, 
-                            "C2_13": c_c2, "CFin": c_cf, "CPura": c_cp, "Adj": c_adj
-                        })
+                        item.update({"VM": c_vm, "Susc": c_su, "C1": c_c1, "Adh": c_ad, "C2_13": c_c2, "CFin": c_cf, "CPura": c_cp, "Adj": c_adj})
                 st.success("Variables actualizadas")
                 st.rerun()
 
-        # 2. Edición del Texto de Cierre (Persuasión/Neuroventas)
         st.write("---")
         st.subheader("✍️ Editar Cierre Persuasivo")
         nuevo_texto_cierre = st.text_area("Cierre de Venta:", value=st.session_state.texto_cierre, height=300)
@@ -101,55 +102,50 @@ with st.sidebar:
 if st.session_state.lista_precios:
     st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
     st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
-    mod_sel = st.selectbox("🎯 Seleccioná el Modelo para enviar:", [a['Modelo'] for a in st.session_state.lista_precios])
+    mod_sel = st.selectbox("🎯 Seleccioná el Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
     d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
     fmt = lambda x: f"{x:,}".replace(",", ".")
     
-    atencion = "💎 *¡ATENCIÓN!*"
-    # Corrección de "adjudicalo" a "adjudica" según lo solicitado
+    # Lógica de planes actualizada
     if "VIRTUS" in d['Modelo']:
-        encabezado = f"{atencion} **Vehículo financiado 100% en cuotas sin necesidad de integración mínima.**"
+        encabezado = "💎 *¡ATENCIÓN!* **Vehículo financiado 100% en cuotas.**"
         tp, porc, alic_h = "Plan 100% financiado", "0%", 0
+    elif any(x in d['Modelo'] for x in ["T-CROSS", "NIVUS"]):
+        encabezado = "💎 *¡ATENCIÓN!* **Financiá el 80% de tu unidad y adjudicá por sorteo o licitación.**"
+        tp, porc, alic_h = "Plan 80/20", "20%", int(d['VM'] * 0.2)
     elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]):
-        encabezado = f"{atencion} **Financiá el 60% de tu unidad en cuotas y adjudica con el 40% de su valor.**"
+        encabezado = "💎 *¡ATENCIÓN!* **Financiá el 60% de tu unidad y adjudicá con el 40% de su valor.**"
         tp, porc, alic_h = "Plan 60/40", "40%", int(d['VM'] * 0.4)
     else:
-        encabezado = f"{atencion} **Financiá el 70% de tu unidad en cuotas y adjudica con el 30% de su valor.**"
+        encabezado = "💎 *¡ATENCIÓN!* **Financiá el 70% de tu unidad y adjudicá con el 30% de su valor.**"
         tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
 
-    linea_adj = f"🎈 *Adjudicación Pactada en Cuota:* {d['Adj']}\n\n" if d.get('Adj') else ""
-
+    linea_adj = f"🎈 *Adjudicación:* {d['Adj']}\n\n" if d.get('Adj') else ""
     costo_normal = d['Susc'] + d['C1']
     ahorro_total = costo_normal - d['Adh']
     alic_line = f"* Alícuota ({porc}): Hoy ${fmt(alic_h)}\n" if alic_h > 0 else ""
     
     msj = (f"{encabezado}\n\n"
-            f"Basada en la planilla de *Arias Hnos.* con vigencia al **{st.session_state.fecha_vigencia}**, aquí tienes el detalle de los costos para el:\n\n"
+            f"Vigencia al **{st.session_state.fecha_vigencia}**:\n\n"
             f"🚘 **Vehículo:** **{d['Modelo']}**\n"
-            f"* **Valor de la Unidad:** ${fmt(d['VM'])}\n"
-            f"* **Tipo de Plan:** {tp}\n"
-            f"* **Plazo:** 84 Cuotas (Pre-cancelables a Cuota Pura)\n\n"
+            f"* **Valor Unidad:** ${fmt(d['VM'])}\n"
+            f"* **Tipo de Plan:** {tp}\n\n"
             f"{linea_adj}"
-            f"**Detalle de Inversión Inicial:**\n"
-            f"* Suscripción a Financiación: ${fmt(d['Susc'])}\n"
-            f"* Cuota Nº 1: ${fmt(d['C1'])}\n"
-            f"* **Costo Normal de Ingreso:** ${fmt(costo_normal)} (Ver Beneficio Exclusivo 👇)\n\n"
-            f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ya cubrís el **INGRESO COMPLETO de Cuota 1 y Suscripción**.\n"
-            f"💰 **AHORRO DIRECTO HOY: ${fmt(ahorro_total)}**\n"
-            f"-----------------------------------------------------------\n\n"
-            f"**Esquema de cuotas posteriores:**\n"
+            f"**Inversión Inicial:**\n"
+            f"* Suscripción: ${fmt(d['Susc'])}\n"
+            f"* Cuota 1: ${fmt(d['C1'])}\n"
+            f"* **Costo Normal:** ${fmt(costo_normal)}\n\n"
+            f"🔥 **BENEFICIO:** Abonando solo **${fmt(d['Adh'])}**\n"
+            f"💰 **AHORRO HOY: ${fmt(ahorro_total)}**\n\n"
+            f"**Esquema de cuotas:**\n"
             f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
             f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n"
-            f"{alic_line}"
-            f"* Cuota Pura: ${fmt(d['CPura'])}\n\n"
+            f"{alic_line}\n"
             f"{st.session_state.texto_cierre}")
 
     js_msg = json.dumps(msj)
-
     st.components.v1.html(f"""
-    <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
-        📋 COPIAR PARA WHATSAPP
-    </button>
+    <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button>
     <script>
     function copyToClipboard() {{
         const text = {js_msg};
@@ -159,12 +155,10 @@ if st.session_state.lista_precios:
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert('✅ ¡Copiado con éxito!');
+        alert('✅ ¡Copiado!');
     }}
     </script>
     """, height=80)
     
     with st.expander("👀 Ver Vista Previa", expanded=True):
-        st.markdown(f'<div class="caja-previa">{msj.replace("\n", "<br>").replace("**", "<b>").replace("*", "")}</div>', unsafe_allow_html=True)
-else:
-    st.info("👋 Hola, cargá la lista de precios para empezar.")
+        st.markdown(f'<div class="caja-previa">{msj.replace("\n", "<br>")}</div>', unsafe_allow_html=True)

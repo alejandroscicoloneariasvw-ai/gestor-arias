@@ -117,7 +117,7 @@ if "VIRTUS" in d['Modelo']:
     encabezado = "💎 *¡ATENCIÓN!* **Vehículo financiado 100% en cuotas.**"
     tp, porc, alic_h = "Plan 100% financiado", "0%", 0
 elif any(x in d['Modelo'] for x in ["T-CROSS", "NIVUS"]):
-    encabezado = "💎 *¡ATENCIÓN!* **Financiá el 80% de tu unidad y adjudicá por sorteo o licitación.**"
+    encabezado = "💎 *¡ATENCIÓN!* **Financiá el 80% de tu unidad y adjudicá con el 20% de su valor.**"
     tp, porc, alic_h = "Plan 80/20", "20%", int(d['VM'] * 0.2)
 elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]):
     encabezado = "💎 *¡ATENCIÓN!* **Financiá el 60% de tu unidad y adjudicá con el 40% de su valor.**"

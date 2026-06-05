@@ -126,7 +126,7 @@ else:
     encabezado = "💎 *¡ATENCIÓN!* **Financiá el 70% de tu unidad y adjudicá con el 30% de su valor.**"
     tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
 
-alic_line = f"* Alícuota ({porc}): Abonando solo *${fmt(alic_h)}*\n" if alic_h > 0 else ""
+alic_line = f"* Alícuota ({porc}): *${fmt(alic_h)}*\n" if alic_h > 0 else ""
 linea_adj = f"🎈 *Adjudicación:* {d['Adj']}\n\n" if d.get('Adj') else ""
 
 costo_normal = d['Susc'] + d['C1']

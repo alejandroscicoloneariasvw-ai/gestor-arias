@@ -126,7 +126,7 @@ else:
     encabezado = "💎 *¡ATENCIÓN!* **Financiá el 70% de tu unidad y adjudicá con el 30% de su valor.**"
     tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
 
-alic_line = f"* Alícuota ({porc}): Hoy **${fmt(alic_h)}**\n" if alic_h > 0 else ""
+alic_line = f"* Alícuota ({porc}): Abonando solo *${fmt(alic_h)}*\n" if alic_h > 0 else ""
 linea_adj = f"🎈 *Adjudicación:* {d['Adj']}\n\n" if d.get('Adj') else ""
 
 costo_normal = d['Susc'] + d['C1']
@@ -143,7 +143,7 @@ msj = (f"{encabezado}\n\n"
         f"* Suscripción: ${fmt(d['Susc'])}\n"
         f"* Cuota 1: ${fmt(d['C1'])}\n"
         f"* **Costo Normal:** ${fmt(costo_normal)}\n\n"
-        f"🔥 **BENEFICIO EXCLUSIVO:** Abonando solo **${fmt(d['Adh'])}**, ¡ya cubrís el **INGRESO COMPLETO DE CUOTA 1 Y SUSCRIPCIÓN**!"
+        f"🔥 *BENEFICIO EXCLUSIVO:* Abonando solo *${fmt(d['Adh'])}*, ¡ya cubrís el *INGRESO COMPLETO DE CUOTA 1 Y SUSCRIPCIÓN*!"
         f"💰 **AHORRO HOY: ${fmt(ahorro_total)}**\n\n"
         f"**Esquema de cuotas:**\n"
         f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"

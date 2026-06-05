@@ -51,8 +51,8 @@ with st.sidebar:
                 if len(p) >= 8:
                     try:
                         modelo_nombre = p[0].strip().upper()
-                        # Lógica de adjudicación basada en el nuevo requerimiento
-                        if any(x in modelo_nombre for x in ["VIRTUS", "T-CROSS", "NIVUS"]):
+                        # Lógica de adjudicación unificada
+                        if any(x in modelo_nombre for x in ["VIRTUS", "T-CROSS", "NIVUS", "AMAROK", "TAOS"]):
                             adj_val = "Sorteo o Licitación"
                         elif "TERA" in modelo_nombre:
                             adj_val = "8, 12 y 24"
@@ -99,66 +99,73 @@ with st.sidebar:
             st.session_state.texto_cierre = nuevo_texto_cierre
             st.rerun()
 
-if st.session_state.lista_precios:
-    st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
-    st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
-    mod_sel = st.selectbox("🎯 Seleccioná el Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
-    d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
-    fmt = lambda x: f"{x:,}".replace(",", ".")
-    
-    # Lógica de planes actualizada
-    if "VIRTUS" in d['Modelo']:
-        encabezado = "💎 *¡ATENCIÓN!* **Vehículo financiado 100% en cuotas.**"
-        tp, porc, alic_h = "Plan 100% financiado", "0%", 0
-    elif any(x in d['Modelo'] for x in ["T-CROSS", "NIVUS"]):
-        encabezado = "💎 *¡ATENCIÓN!* **Financiá el 80% de tu unidad y adjudicá por sorteo o licitación.**"
-        tp, porc, alic_h = "Plan 80/20", "20%", int(d['VM'] * 0.2)
-    elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]):
-        encabezado = "💎 *¡ATENCIÓN!* **Financiá el 60% de tu unidad y adjudicá con el 40% de su valor.**"
-        tp, porc, alic_h = "Plan 60/40", "40%", int(d['VM'] * 0.4)
-    else:
-        encabezado = "💎 *¡ATENCIÓN!* **Financiá el 70% de tu unidad y adjudicá con el 30% de su valor.**"
-        tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
+# Mensaje de bienvenida
+if not st.session_state.lista_precios:
+    st.title("👋 ¡Bienvenido!")
+    st.info("Para comenzar, por favor **carga la planilla de precios** desde el panel lateral izquierdo para habilitar el gestor de presupuestos.")
+    st.stop()
 
-    linea_adj = f"🎈 *Adjudicación:* {d['Adj']}\n\n" if d.get('Adj') else ""
-    costo_normal = d['Susc'] + d['C1']
-    ahorro_total = costo_normal - d['Adh']
-    alic_line = f"* Alícuota ({porc}): Hoy ${fmt(alic_h)}\n" if alic_h > 0 else ""
-    
-    msj = (f"{encabezado}\n\n"
-            f"Vigencia al **{st.session_state.fecha_vigencia}**:\n\n"
-            f"🚘 **Vehículo:** **{d['Modelo']}**\n"
-            f"* **Valor Unidad:** ${fmt(d['VM'])}\n"
-            f"* **Tipo de Plan:** {tp}\n\n"
-            f"{linea_adj}"
-            f"**Inversión Inicial:**\n"
-            f"* Suscripción: ${fmt(d['Susc'])}\n"
-            f"* Cuota 1: ${fmt(d['C1'])}\n"
-            f"* **Costo Normal:** ${fmt(costo_normal)}\n\n"
-            f"🔥 **BENEFICIO:** Abonando solo **${fmt(d['Adh'])}**\n"
-            f"💰 **AHORRO HOY: ${fmt(ahorro_total)}**\n\n"
-            f"**Esquema de cuotas:**\n"
-            f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
-            f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n"
-            f"{alic_line}\n"
-            f"{st.session_state.texto_cierre}")
+# Lógica principal
+st.markdown("### 🚗 Arias Hnos. | Gestión de Presupuestos")
+st.markdown(f'<div class="firma-scicolone">by Alejandro Scicolone</div>', unsafe_allow_html=True)
+mod_sel = st.selectbox("🎯 Seleccioná el Modelo:", [a['Modelo'] for a in st.session_state.lista_precios])
+d = next(a for a in st.session_state.lista_precios if a['Modelo'] == mod_sel)
+fmt = lambda x: f"{x:,}".replace(",", ".")
 
-    js_msg = json.dumps(msj)
-    st.components.v1.html(f"""
-    <button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button>
-    <script>
-    function copyToClipboard() {{
-        const text = {js_msg};
-        const el = document.createElement('textarea');
-        el.value = text;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert('✅ ¡Copiado!');
-    }}
-    </script>
-    """, height=80)
-    
-    with st.expander("👀 Ver Vista Previa", expanded=True):
-        st.markdown(f'<div class="caja-previa">{msj.replace("\n", "<br>")}</div>', unsafe_allow_html=True)
+# Lógica de planes
+if "VIRTUS" in d['Modelo']:
+    encabezado = "💎 *¡ATENCIÓN!* **Vehículo financiado 100% en cuotas.**"
+    tp, porc, alic_h = "Plan 100% financiado", "0%", 0
+elif any(x in d['Modelo'] for x in ["T-CROSS", "NIVUS"]):
+    encabezado = "💎 *¡ATENCIÓN!* **Financiá el 80% de tu unidad y adjudicá por sorteo o licitación.**"
+    tp, porc, alic_h = "Plan 80/20", "20%", int(d['VM'] * 0.2)
+elif any(x in d['Modelo'] for x in ["AMAROK", "TAOS"]):
+    encabezado = "💎 *¡ATENCIÓN!* **Financiá el 60% de tu unidad y adjudicá con el 40% de su valor.**"
+    tp, porc, alic_h = "Plan 60/40", "40%", int(d['VM'] * 0.4)
+else:
+    encabezado = "💎 *¡ATENCIÓN!* **Financiá el 70% de tu unidad y adjudicá con el 30% de su valor.**"
+    tp, porc, alic_h = "Plan 70/30", "30%", int(d['VM'] * 0.3)
+
+alic_line = f"* Alícuota ({porc}): Hoy ${fmt(alic_h)}\n" if alic_h > 0 else ""
+linea_adj = f"🎈 *Adjudicación:* {d['Adj']}\n\n" if d.get('Adj') else ""
+
+costo_normal = d['Susc'] + d['C1']
+ahorro_total = costo_normal - d['Adh']
+
+msj = (f"{encabezado}\n\n"
+        f"Vigencia al **{st.session_state.fecha_vigencia}**:\n\n"
+        f"🚘 **Vehículo:** **{d['Modelo']}**\n"
+        f"* **Valor Unidad:** ${fmt(d['VM'])}\n"
+        f"* **Tipo de Plan:** {tp}\n"
+        f"{alic_line}"
+        f"{linea_adj}"
+        f"**Inversión Inicial:**\n"
+        f"* Suscripción: ${fmt(d['Susc'])}\n"
+        f"* Cuota 1: ${fmt(d['C1'])}\n"
+        f"* **Costo Normal:** ${fmt(costo_normal)}\n\n"
+        f"🔥 **BENEFICIO:** Abonando solo **${fmt(d['Adh'])}**\n"
+        f"💰 **AHORRO HOY: ${fmt(ahorro_total)}**\n\n"
+        f"**Esquema de cuotas:**\n"
+        f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
+        f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n\n"
+        f"{st.session_state.texto_cierre}")
+
+js_msg = json.dumps(msj)
+st.components.v1.html(f"""
+<button onclick="copyToClipboard()" style="background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">📋 COPIAR PARA WHATSAPP</button>
+<script>
+function copyToClipboard() {{
+    const text = {js_msg};
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    alert('✅ ¡Copiado!');
+}}
+</script>
+""", height=80)
+
+with st.expander("👀 Ver Vista Previa", expanded=True):
+    st.markdown(f'<div class="caja-previa">{msj.replace("\n", "<br>")}</div>', unsafe_allow_html=True)

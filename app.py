@@ -148,6 +148,7 @@ msj = (f"{encabezado}\n\n"
         f"**Esquema de cuotas:**\n"
         f"* Cuotas 2 a 13: ${fmt(d['C2_13'])}\n"
         f"* Cuotas 14 a 84: ${fmt(d['CFin'])}\n\n"
+        f"* Cuota Pura: ${fmt(d['CPura'])}\n\n"
         f"{st.session_state.texto_cierre}")
 
 js_msg = json.dumps(msj)
